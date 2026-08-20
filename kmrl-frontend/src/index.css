@@ -1,0 +1,118 @@
+/* ============================================================
+   Metro Control Deck — Design Tokens + Global Reset
+   Pure CSS custom property system. Tailwind not imported here
+   to avoid Preflight cascade conflicts with the dark theme.
+   ============================================================ */
+
+/* ── Design Tokens ─────────────────────────────────────────── */
+:root {
+  /* Surfaces — near-black, layered by subtle shifts not shadows */
+  --color-bg:              #0b0e14;  /* page background            */
+  --color-surface:         #12161f;  /* cards, panels              */
+  --color-surface-raised:  #171c27;  /* modals, active panels      */
+  --color-border:          #262c3a;  /* hairline borders, dividers */
+  --color-border-strong:   #38414f;
+
+  /* Text */
+  --color-text-primary:    #f2f4f8;
+  --color-text-secondary:  #a6adba;
+  --color-text-muted:      #6b7385;
+
+  /* Brand accent — ONE color, reserved for primary CTAs / active nav */
+  --color-accent:          #2f7dfa;  /* metro-line blue */
+  --color-accent-bright:   #5b9dff;  /* hover / focus   */
+  --color-accent-dim:      #1a3a66;  /* subtle fills     */
+
+  --color-pipeline-ingest: #2f7dfa;
+  --color-pipeline-optimize: #f5a623;
+  --color-pipeline-explain: #8b6ef5;
+  --color-pipeline-simulate: #f5487c;
+  --color-pipeline-operate: #3dd68c;
+
+  /* Signal system — railway semantics, tied to constraint types */
+  --color-signal-red:      #e5484d;  /* hard constraint / stop    */
+  --color-signal-amber:    #f5a623;  /* soft constraint / caution */
+  --color-signal-green:    #3dd68c;  /* all-clear / in service    */
+  --color-signal-blue:     #2f7dfa;  /* standby / informational   */
+
+  /* Fonts */
+  --font-display: 'IBM Plex Serif', Georgia, serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', 'JetBrains Mono', monospace;
+
+  /* Spacing (4px base grid) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+
+  /* Radius */
+  --radius-input:  6px;
+  --radius-button: 8px;
+  --radius-card:   12px;
+  --radius-pill:   9999px;
+
+  /* Elevation — border-based, no drop shadows */
+  --elevation-1:     inset 0 0 0 1px var(--color-border);
+  --elevation-focus: 0 0 0 2px var(--color-accent-bright);
+}
+
+/* ── Base Reset ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0b0e14 !important; /* --color-bg, forced before Tailwind Preflight */
+  color: #f2f4f8;                       /* --color-text-primary */
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+#root {
+  background: var(--color-bg);
+  min-height: 100vh;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Scrollbar — dark, minimal */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

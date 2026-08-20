@@ -1,0 +1,22 @@
+# Global IDE and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Build output and dependencies
+node_modules/
+dist/
+venv/
+__pycache__/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3

@@ -1,0 +1,36 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Database - PostgreSQL + TimescaleDB
+sqlalchemy
+psycopg2-binary
+alembic
+
+# Neo4j graph database
+neo4j
+
+# Async task queue
+celery
+redis
+
+# Data validation / schemas
+pydantic
+pydantic-settings
+
+# GTFS / CSV parsing
+pandas
+
+# OR-Tools (CP-SAT solver — Track A integration)
+ortools
+
+# Utilities
+python-dateutil
+httpx
+python-multipart
+tenacity
+
+# Dev / testing
+pytest
+pytest-asyncio
+httpx
