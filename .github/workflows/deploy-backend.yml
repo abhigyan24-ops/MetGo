@@ -1,0 +1,29 @@
+name: Deploy Backend to Oracle Cloud
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'kmrl-backend/**'
+      - 'LOCKWOOD/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Oracle Cloud VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            cd ~/MetGo
+            git pull origin main
+            cd kmrl-backend
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+            alembic upgrade head
+            sudo systemctl restart metgo-api
+            sudo systemctl restart metgo-celery
+            echo "✅ Backend deployed successfully!"
