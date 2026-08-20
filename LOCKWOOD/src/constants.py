@@ -5,9 +5,6 @@ Shared constants for MetGo — the KMRL train induction planning system.
 from datetime import date
 
 # The night we are generating an induction plan for.
-# This is a FIXED constant, not date.today() — this keeps the test
-# dataset's behavior identical and reproducible on every run,
-# regardless of when the code is actually executed.
 PLANNING_DATE = date(2026, 8, 15)
 
 # Fixed monthly branding exposure target, in hours, used by every train.

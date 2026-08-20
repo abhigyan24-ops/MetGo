@@ -8,7 +8,7 @@ agreed between Track A (solver), Track B (backend), and Track C (frontend).
 from __future__ import annotations
 
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -21,7 +21,8 @@ from app.models.train import JobCardSeverity, JobCardStatus, TrainStatus
 
 class JobCardOut(BaseModel):
     """Individual maintenance job card."""
-    id: str = Field(..., examples=["JC-114"], description="Job card reference number")
+    id: Union[str, int] = Field(..., examples=["JC-114"], description="Job card reference number or ID")
+    jc_ref: Optional[str] = Field(None, examples=["JC-114"])
     status: JobCardStatus = Field(..., examples=["open"])
     severity: JobCardSeverity = Field(..., examples=["critical"])
     description: str = Field(..., examples=["Pantograph inspection overdue"])

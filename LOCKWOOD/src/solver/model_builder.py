@@ -121,4 +121,9 @@ def build_model(trains: list[Train], yard_layout: YardLayout) -> tuple[cp_model.
     cleaning_vars = [assign_vars[(t.train_id, CLEANING)] for t in trains]
     model.Add(sum(cleaning_vars) <= MAX_TRAINS_IN_CLEANING)
 
+    # Operational requirement: maintain baseline service fleet size (min 14 trains)
+    if len(trains) >= 15:
+        service_vars = [assign_vars[(t.train_id, SERVICE)] for t in trains]
+        model.Add(sum(service_vars) >= 14)
+
     return model, assign_vars

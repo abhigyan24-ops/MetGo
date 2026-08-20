@@ -150,63 +150,105 @@ def seed_yard_layout(db: Session) -> List[str]:
             all_bay_ids.append(bay_id)
     
     db.commit()
-    print(f"🏗️  Created Muttom Yard layout: {len(YARD_LAYOUT)} lines, {len(all_bay_ids)} bays")
+    print(f"[OK] Created Muttom Yard layout: {len(YARD_LAYOUT)} lines, {len(all_bay_ids)} bays")
     
     return all_bay_ids
 
 
 def generate_trains_with_data(db: Session, available_bays: List[str]) -> None:
     """
-    Generate all 25 KMRL trainsets with simulated operational data.
+    Generate all 25 KMRL trainsets with balanced, realistic operational data.
     
     Real parameters: 25 trains, 3 coaches each
-    Simulated: certs, job cards, cleaning, branding, yard positions
+    Balanced distribution:
+      - 2 Critical job cards (T04, T12 -> Maintenance)
+      - 1 Expired fitness cert (T09 -> Cannot service)
+      - 2 Expiring soon certs (T05 in 3d, T17 in 5d)
+      - 2 Cleaning due tonight (T08, T21 -> Cleaning bay)
+      - 1 Major job card (T19 -> Soft maintenance preference)
+      - 2 Minor job cards (T10, T15 -> OK for service)
+      - 8 Active branding contracts with delivery shortfall (T01, T02, T07, T11, T14, T18, T22, T25 -> Service priority)
+      - Rest healthy & available (leading to ~16 Service, ~4 Standby, ~3 Maintenance, ~2 Cleaning)
     """
-    
-    # Shuffle bays for random assignment
-    random.shuffle(available_bays)
-    
-    trains_needing_critical_jobs = random.sample(range(1, FLEET_SIZE + 1), CRITICAL_JOB_CARD_COUNT)
-    trains_expiring_soon = random.sample(
-        [t for t in range(1, FLEET_SIZE + 1) if t not in trains_needing_critical_jobs],
-        CERT_EXPIRING_SOON_COUNT
-    )
-    
     today = date.today()
+
+    # Pre-planned designated roles for balanced demo and operations
+    critical_job_trains = {
+        4: "Critical pantograph inspection overdue — service prohibited",
+        12: "Traction motor insulation resistance low — critical safety block",
+    }
+    expired_cert_trains = [9]         # Expired 3 days ago
+    expiring_soon_trains = {5: 3, 17: 5} # (train_num: days_to_expiry)
+    cleaning_due_trains = [8, 21]
+    major_job_trains = {19: "HVAC compressor efficiency degraded — major service"}
+    minor_job_trains = {
+        10: "Interior LED display panel pixel fault",
+        15: "Driver cabin seat height adjustment sticking",
+    }
+    branding_trains = {
+        1: ("Kerala Tourism", 15.0, 8.5),
+        2: ("Lulu Mall Kochi", 14.0, 7.0),
+        7: ("Federal Bank", 12.0, 6.0),
+        11: ("Malabar Gold", 15.0, 9.0),
+        14: ("Wonderla Amusement Park", 10.0, 4.0),
+        18: ("Muthoot Finance", 12.0, 7.5),
+        22: ("Cochin Shipyard", 14.0, 8.0),
+        25: ("Kalyan Silks", 15.0, 9.5),
+    }
+
+    # Deterministic yard bay allocation for realistic stabling
+    # available_bays contains Stabling (B01-B26), Maintenance (M01-M03), Wash (W01)
+    stabling_bays = [b for b in available_bays if b.startswith('B')]
+    maint_bays = [b for b in available_bays if b.startswith('M')]
+    wash_bays = [b for b in available_bays if b.startswith('W')]
     
+    # Assign bays: Put maintenance trains in M bays or front stabling, wash in W bays, rest in stabling
+    bay_map = {}
+    stabling_idx = 0
+    maint_idx = 0
+    wash_idx = 0
+
+    for i in range(1, FLEET_SIZE + 1):
+        if i in critical_job_trains and maint_idx < len(maint_bays):
+            bay_map[i] = maint_bays[maint_idx]
+            maint_idx += 1
+        elif i in cleaning_due_trains and wash_idx < len(wash_bays):
+            bay_map[i] = wash_bays[wash_idx]
+            wash_idx += 1
+        elif stabling_idx < len(stabling_bays):
+            bay_map[i] = stabling_bays[stabling_idx]
+            stabling_idx += 1
+        else:
+            bay_map[i] = available_bays[i - 1]
+
     for i in range(1, FLEET_SIZE + 1):
         train_id = f"T{i:02d}"
-        
-        # Assign a yard bay (first 25 bays)
-        current_bay = available_bays[i - 1] if i <= len(available_bays) else None
-        
-        # Random mileage
-        mileage = random.uniform(MILEAGE_MIN_KM, MILEAGE_MAX_KM)
-        
-        # Create train
+        current_bay = bay_map.get(i)
+
+        # Realistic mileage curve (30,000 km to 65,000 km)
+        base_mileage = 35000 + (i * 1150) % 28000
+        if i in [10, 16, 23, 24]: # higher mileage trains
+            base_mileage += 8000
+
         train = Train(
             train_id=train_id,
             coach_count=COACHES_PER_TRAIN,
             current_bay_id=current_bay,
-            mileage_km=mileage,
-            status=TrainStatus.AVAILABLE,
+            mileage_km=float(base_mileage),
+            status=TrainStatus.AVAILABLE if i not in critical_job_trains else TrainStatus.MAINTENANCE,
         )
         db.add(train)
-        db.flush()  # Flush to get train in session for FK relationships
-        
-        # ---------------------------------------------------------------------------
-        # Fitness Certificate
-        # ---------------------------------------------------------------------------
-        if i in trains_expiring_soon:
-            # Cert expires in 1-7 days (demo impact)
-            days_to_expiry = random.randint(1, 7)
+        db.flush()
+
+        # 1. Fitness Certificate
+        if i in expired_cert_trains:
+            expiry_date = today - timedelta(days=3)
+        elif i in expiring_soon_trains:
+            expiry_date = today + timedelta(days=expiring_soon_trains[i])
         else:
-            # Normal cert: expires in 30-90 days
-            days_to_expiry = random.randint(CERT_MIN_DAYS, CERT_MAX_DAYS)
+            expiry_date = today + timedelta(days=30 + ((i * 7) % 60))
         
-        expiry_date = today + timedelta(days=days_to_expiry)
-        issued_date = expiry_date - timedelta(days=365)  # Cert valid for 1 year
-        
+        issued_date = expiry_date - timedelta(days=365)
         cert = FitnessCert(
             train_id=train_id,
             cert_ref=f"FC-{train_id}-2026",
@@ -215,92 +257,78 @@ def generate_trains_with_data(db: Session, available_bays: List[str]) -> None:
             is_active=True,
         )
         db.add(cert)
-        
-        # ---------------------------------------------------------------------------
-        # Job Cards
-        # ---------------------------------------------------------------------------
-        if i in trains_needing_critical_jobs:
-            # Critical job card — forces hard constraint maintenance assignment
+
+        # 2. Job Cards
+        if i in critical_job_trains:
             jc = JobCard(
                 jc_ref=f"JC-{100 + i}",
                 train_id=train_id,
-                description="Critical pantograph inspection overdue — service prohibited",
+                description=critical_job_trains[i],
                 status=JobCardStatus.OPEN,
                 severity=JobCardSeverity.CRITICAL,
             )
             db.add(jc)
-            train.status = TrainStatus.MAINTENANCE
-        
-        elif random.random() < JOB_CARD_PROBABILITY:
-            # Non-critical job card
-            severity = random.choice([JobCardSeverity.MAJOR, JobCardSeverity.MINOR])
-            descriptions = {
-                JobCardSeverity.MAJOR: [
-                    "HVAC system efficiency below target",
-                    "Door mechanism requires adjustment",
-                    "Brake pad wear approaching service limit",
-                ],
-                JobCardSeverity.MINOR: [
-                    "Interior lighting panel replacement scheduled",
-                    "Passenger information display pixel fault",
-                    "Seat cushion replacement due",
-                ],
-            }
-            
+        elif i in major_job_trains:
             jc = JobCard(
                 jc_ref=f"JC-{200 + i}",
                 train_id=train_id,
-                description=random.choice(descriptions[severity]),
+                description=major_job_trains[i],
                 status=JobCardStatus.OPEN,
-                severity=severity,
+                severity=JobCardSeverity.MAJOR,
             )
             db.add(jc)
-        
-        # ---------------------------------------------------------------------------
-        # Cleaning Schedule
-        # ---------------------------------------------------------------------------
-        if random.random() < CLEANING_DUE_PROBABILITY:
-            # Cleaning scheduled for tonight
+        elif i in minor_job_trains:
+            jc = JobCard(
+                jc_ref=f"JC-{300 + i}",
+                train_id=train_id,
+                description=minor_job_trains[i],
+                status=JobCardStatus.OPEN,
+                severity=JobCardSeverity.MINOR,
+            )
+            db.add(jc)
+
+        # 3. Cleaning Schedule
+        if i in cleaning_due_trains:
+            # Overdue cleaning: scheduled for tonight, last completed 4-5 days ago
             cleaning = CleaningSlot(
                 train_id=train_id,
                 scheduled_at=datetime.utcnow() + timedelta(hours=2),
                 completed=False,
             )
             db.add(cleaning)
-        
-        # ---------------------------------------------------------------------------
-        # Branding Contract
-        # ---------------------------------------------------------------------------
-        if random.random() < BRANDING_CONTRACT_PROBABILITY:
-            # Under-delivered branding contract (soft constraint: prefer service)
-            hours_target = random.uniform(10.0, 15.0)
-            hours_delivered = hours_target * random.uniform(0.5, 0.9)  # 50-90% delivered
-            
+        else:
+            # Recently cleaned 1-2 days ago
+            last_clean_days = 1 if i % 2 == 0 else 2
+            cleaning = CleaningSlot(
+                train_id=train_id,
+                scheduled_at=datetime.utcnow() - timedelta(days=last_clean_days),
+                completed_at=today - timedelta(days=last_clean_days),
+                completed=True,
+            )
+            db.add(cleaning)
+
+        # 4. Branding Contract
+        if i in branding_trains:
+            advertiser, target_h, delivered_h = branding_trains[i]
             branding = BrandingContract(
                 train_id=train_id,
                 contract_ref=f"BRAND-{train_id}-2026",
-                advertiser=random.choice([
-                    "Kerala Tourism",
-                    "Lulu Mall",
-                    "Federal Bank",
-                    "Malabar Gold",
-                    "Wonderla",
-                ]),
-                start_date=today - timedelta(days=60),
-                end_date=today + timedelta(days=30),
-                hours_target=hours_target,
-                hours_delivered=hours_delivered,
+                advertiser=advertiser,
+                start_date=today - timedelta(days=45),
+                end_date=today + timedelta(days=45),
+                hours_target=target_h,
+                hours_delivered=delivered_h,
                 is_active=True,
             )
             db.add(branding)
-    
+
     # Update bay occupancy
     for i in range(1, FLEET_SIZE + 1):
         train_id = f"T{i:02d}"
-        bay_id = available_bays[i - 1] if i <= len(available_bays) else None
+        bay_id = bay_map.get(i)
         if bay_id:
             db.query(YardBay).filter(YardBay.bay_id == bay_id).update({"occupied_by": train_id})
-    
+
     db.commit()
     
     # Summary
@@ -316,18 +344,18 @@ def generate_trains_with_data(db: Session, available_bays: List[str]) -> None:
     branding_count = db.query(BrandingContract).filter(BrandingContract.is_active == True).count()
     cleaning_count = db.query(CleaningSlot).filter(CleaningSlot.completed == False).count()
     
-    print(f"✅ Generated {total_trains} trains with:")
-    print(f"   • {critical_count} trains with CRITICAL job cards (→ maintenance)")
-    print(f"   • {expiring_count} trains with certs expiring within 7 days")
-    print(f"   • {branding_count} trains under active branding contracts")
-    print(f"   • {cleaning_count} trains with cleaning due")
+    print(f"[OK] Generated {total_trains} trains with:")
+    print(f"   * {critical_count} trains with CRITICAL job cards (-> maintenance)")
+    print(f"   * {expiring_count} trains with certs expiring within 7 days")
+    print(f"   * {branding_count} trains under active branding contracts")
+    print(f"   * {cleaning_count} trains with cleaning due")
 
 
 def print_fleet_summary(db: Session) -> None:
     """Print a human-readable summary of the seeded fleet."""
     
     print("\n" + "=" * 80)
-    print("KMRL FLEET SUMMARY — 25 Trainsets (Alstom Metropolis, 3 coaches each)")
+    print("KMRL FLEET SUMMARY -- 25 Trainsets (Alstom Metropolis, 3 coaches each)")
     print("=" * 80)
     
     trains = db.query(Train).order_by(Train.train_id).all()
@@ -336,13 +364,13 @@ def print_fleet_summary(db: Session) -> None:
         cert = train.latest_fitness_cert
         cert_status = f"{cert.days_to_expiry}d" if cert else "NONE"
         if cert and cert.days_to_expiry <= 7:
-            cert_status = f"⚠️  {cert_status}"
+            cert_status = f"[!] {cert_status}"
         
         critical_jobs = [jc for jc in train.job_cards if jc.severity == JobCardSeverity.CRITICAL and jc.status == JobCardStatus.OPEN]
-        job_status = f"🔴 CRITICAL x{len(critical_jobs)}" if critical_jobs else "✓"
+        job_status = f"[CRITICAL x{len(critical_jobs)}]" if critical_jobs else "[OK]"
         
         branding_active = any(bc.is_active for bc in train.branding_contracts)
-        branding_marker = "🎨" if branding_active else "  "
+        branding_marker = "[BRAND]" if branding_active else "       "
         
         print(
             f"{train.train_id}  Bay:{train.current_bay_id or 'N/A':4s}  "
@@ -382,7 +410,7 @@ def main():
         # Step 3: Summary
         print_fleet_summary(db)
         
-        print("\n✅ Fleet seeding complete!")
+        print("\n[OK] Fleet seeding complete!")
         print("   Next: Start the services with `docker-compose up -d`")
         print("   Then: Run migrations with `alembic upgrade head`")
         print("   Finally: Start API with `uvicorn app.main:app --reload`")

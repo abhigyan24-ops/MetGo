@@ -15,7 +15,7 @@ Part 3 project context summary. Gap #1 (multi-line yard) and #3
 Gap #6 (mileage) was already a non-issue.
 """
 
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 from src.adapters.schema_stubs import DBTrain, DBYardBay
 from src.constants import PLANNING_DATE
@@ -41,12 +41,6 @@ def _worst_open_job_card_severity(db_train: DBTrain):
     assumes at most one matters); this picks the worst one, since
     that's the one that should drive scheduling.
     """
-    # NOTE (Part 3c correction): the real schema's status/severity
-    # values are lowercase ("open", "critical", ...), confirmed by
-    # reading app/models/train.py directly -- the Part 3b version
-    # compared against "OPEN"/uppercase-keyed ranks, which would have
-    # matched zero real job cards. str(...).lower() is safe whether
-    # the caller passes a plain string or a str-Enum member.
     open_cards = [jc for jc in db_train.job_cards if str(getattr(jc.status, "value", jc.status)).lower() == "open"]
     if not open_cards:
         return None
@@ -58,23 +52,14 @@ def _most_recent_cleaning_date(db_train: DBTrain) -> date:
     Returns the most recent COMPLETED cleaning_slots[i].completed_at,
     or the "never cleaned" sentinel if this train has no completed
     cleaning history at all.
-
-    NOTE (Part 3c correction): a CleaningSlot can be scheduled but not
-    yet completed -- completed_at is only meaningful (non-None) when
-    completed is True (confirmed by reading app/models/train.py
-    directly). The Part 3b version took max() over ALL slots'
-    completed_at, which would crash comparing a real date against None
-    for any train with a still-pending cleaning slot. This filters to
-    completed slots first.
-
-    Missing cleaning history is treated as maximally overdue (not
-    "recently cleaned") so the cleaning soft constraint always errs
-    toward flagging it, never toward silently ignoring it.
     """
     completed_slots = [s for s in db_train.cleaning_slots if s.completed and s.completed_at is not None]
     if not completed_slots:
         return _NEVER_CLEANED_SENTINEL
-    return max(slot.completed_at for slot in completed_slots)
+    val = max(slot.completed_at for slot in completed_slots)
+    if isinstance(val, datetime):
+        return val.date()
+    return val
 
 
 def _active_branding_contract(db_train: DBTrain):
@@ -86,32 +71,10 @@ def _active_branding_contract(db_train: DBTrain):
 
 
 def adapt_train(db_train: DBTrain) -> Train:
-    """
-    Translates one real-schema DBTrain (plus its related
-    FitnessCert/JobCard/CleaningSlot/BrandingContract data, all
-    reachable off the DBTrain object itself) into lockwood's Train
-    dataclass.
-
-    Fail-safe design decisions (deliberately conservative -- missing
-    data always resolves toward MORE caution, never less):
-      - No fitness cert on file at all -> treated as ALREADY EXPIRED
-        (hard-blocks service), not as "no constraint". A train with
-        no certificate on record should never be assumed safe.
-      - No cleaning history at all -> treated as MAXIMALLY OVERDUE,
-        not as "just cleaned". A train never logged as cleaned should
-        never be assumed clean.
-      - No active branding contract -> target and delivered hours
-        both become 0, which means zero shortfall (no penalty). This
-        one is NOT a safety matter (branding is a business soft
-        constraint, not a safety one), so "no obligation" is the
-        reasonable default rather than a fail-safe.
-
-    Returns:
-        A lockwood Train object, ready to pass into build_model() /
-        build_total_objective() exactly like a TEST_FLEET_6 entry.
-    """
     if db_train.latest_fitness_cert is not None:
         fitness_cert_expiry = db_train.latest_fitness_cert.expiry_date
+        if isinstance(fitness_cert_expiry, datetime):
+            fitness_cert_expiry = fitness_cert_expiry.date()
     else:
         fitness_cert_expiry = _NO_CERT_ON_FILE_EXPIRY
 
