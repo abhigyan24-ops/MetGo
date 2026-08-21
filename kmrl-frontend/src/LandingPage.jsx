@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { MeshGradient } from '@paper-design/shaders-react';
+import NetworkMap from './components/NetworkMap';
 import './LandingPage.css';
 
 gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
@@ -599,6 +600,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <NetworkMap />
 
       {/* 4. PIPELINE SECTIONS (Railway Pattern) */}
       <div id="how-it-works" className="lp-pipeline-wrapper" ref={pipelineRef}>

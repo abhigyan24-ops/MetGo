@@ -1,0 +1,371 @@
+/* ── KMRL Network Map Section ─────────────────────────── */
+.nm-section {
+  padding: 90px 6vw 70px;
+  background: var(--color-bg);
+  position: relative;
+}
+
+.nm-inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.nm-header {
+  text-align: center;
+}
+.nm-title {
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+.nm-sub {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── 2-panel body ────────────────────────── */
+.nm-body {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  height: 440px;
+}
+
+/* ── Map wrapper ─────────────────────────── */
+.nm-map-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.nm-leaflet {
+  width: 100%;
+  height: 100%;
+}
+
+/* Leaflet Overrides for Dark Theme */
+.nm-map-wrap .leaflet-pane,
+.nm-map-wrap .leaflet-top,
+.nm-map-wrap .leaflet-bottom {
+  z-index: 400;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+.leaflet-bar a:last-child {
+  border-bottom: none !important;
+}
+
+/* Leaflet Attribution styling for dark theme */
+.leaflet-container .leaflet-control-attribution {
+  background: rgba(18, 22, 31, 0.7) !important;
+  color: var(--color-text-secondary) !important;
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: var(--color-text-primary) !important;
+}
+
+/* ── Filter dropdown ─────────────────────── */
+.nm-filter {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+}
+.nm-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.nm-filter-btn:hover { border-color: var(--color-border-strong); }
+.nm-filter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+.nm-filter-chevron {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+.nm-filter-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  min-width: 200px;
+  z-index: 600;
+}
+.nm-filter-list li {
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nm-filter-list li:hover { background: rgba(255,255,255,0.05); }
+.nm-filter-list li.active {
+  color: var(--color-accent-bright);
+  font-weight: 700;
+}
+
+/* ── Info card ───────────────────────────── */
+.nm-info-card {
+  background: var(--color-surface-raised);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.nm-info-card.empty-state {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px;
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border-strong);
+}
+.nm-empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+.nm-info-card.empty-state h3 {
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.nm-info-card.empty-state p {
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.nm-card-banner {
+  background: linear-gradient(135deg, var(--color-accent-dim), var(--color-surface));
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  border-bottom: 1px solid var(--color-border);
+}
+.nm-card-banner.depot-banner {
+  background: linear-gradient(135deg, rgba(61, 214, 140, 0.15), var(--color-surface)); /* operate green */
+  color: var(--color-pipeline-operate);
+}
+.nm-card-mal {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+.nm-card-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-bg);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: var(--color-accent-bright);
+}
+.depot-banner .nm-card-logo {
+  color: var(--color-pipeline-operate);
+}
+.nm-card-logo span {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.nm-card-name-banner {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.nm-card-body {
+  padding: 18px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.nm-card-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.nm-card-mal-sub {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+.nm-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.nm-card-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+.nm-card-depot-desc {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  background: rgba(61, 214, 140, 0.08); /* pipeline-operate tint */
+  border-left: 3px solid var(--color-pipeline-operate);
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  margin-top: 4px;
+}
+
+.nm-maps-btn {
+  display: block;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  margin-top: auto;
+  transition: all 0.2s;
+}
+.nm-maps-btn:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* ── Chip strip ──────────────────────────── */
+.nm-chip-strip-wrap {
+  overflow: hidden;
+  position: relative;
+}
+.nm-chip-strip-wrap::before,
+.nm-chip-strip-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  z-index: 2;
+  pointer-events: none;
+}
+.nm-chip-strip-wrap::before {
+  left: 0;
+  background: linear-gradient(to right, var(--color-bg), transparent);
+}
+.nm-chip-strip-wrap::after {
+  right: 0;
+  background: linear-gradient(to left, var(--color-bg), transparent);
+}
+.nm-chip-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px 4px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+.nm-chip-strip::-webkit-scrollbar { height: 4px; }
+.nm-chip-strip::-webkit-scrollbar-track { background: transparent; }
+.nm-chip-strip::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 4px; }
+
+.nm-chip {
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+.nm-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+.nm-chip.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.nm-chip.depot-chip {
+  border-color: rgba(61, 214, 140, 0.3);
+  color: var(--color-pipeline-operate);
+}
+.nm-chip.depot-chip:hover {
+  border-color: var(--color-pipeline-operate);
+  color: var(--color-pipeline-operate);
+}
+.nm-chip.depot-chip.active {
+  background: var(--color-pipeline-operate);
+  border-color: var(--color-pipeline-operate);
+  color: #fff;
+}
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 900px) {
+  .nm-body {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .nm-map-wrap {
+    height: 320px;
+  }
+  .nm-info-card {
+    height: auto;
+  }
+}
+@media (max-width: 600px) {
+  .nm-section { padding: 60px 4vw 50px; }
+  .nm-map-wrap { height: 260px; }
+}
