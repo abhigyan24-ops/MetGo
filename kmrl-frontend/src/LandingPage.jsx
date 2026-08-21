@@ -593,10 +593,27 @@ export default function LandingPage() {
             <p>Every night, Kochi Metro must decide which of its 25 Alstom Metropolis trainsets go into passenger service, standby, maintenance, or cleaning. A poorly planned fleet disrupts the 8-minute headway, affecting over 100,000 daily riders.</p>
             <p>Today, these decisions rely on spreadsheets and institutional experience. MetGo mathematically guarantees these decisions in seconds, ensuring no safety rule is ever silently violated.</p>
           </div>
-          <div className="lp-problem-stats">
-            <Metric label="Daily Riders" value={100000} prefix="+" tone="blue" />
-            <Metric label="Trainsets" value={25} tone="green" />
-            <Metric label="Minute Headway" value={8} tone="pink" />
+          <div className="lp-problem-right">
+            <div className="lp-problem-stats">
+              <Metric label="Daily Riders" value={100000} prefix="+" tone="blue" />
+              <Metric label="Trainsets" value={25} tone="green" />
+              <Metric label="Minute Headway" value={8} tone="pink" />
+            </div>
+
+            <div className="lp-tech-specs-block">
+              <h4 className="tech-specs-title">The Numbers</h4>
+              <div className="tech-specs-grid">
+                <div className="tech-spec-item"><span>Design Speed</span><strong>90 km/h</strong></div>
+                <div className="tech-spec-item"><span>Average Speed</span><strong>35 km/h</strong></div>
+                <div className="tech-spec-item"><span>Train Length</span><strong>66.55m (3 coaches)</strong></div>
+                <div className="tech-spec-item"><span>Capacity / Train</span><strong>975 pax (crush load)</strong></div>
+                <div className="tech-spec-item"><span>Peak Headway</span><strong>5-7 mins (7-10 AM, 5-8 PM)</strong></div>
+                <div className="tech-spec-item"><span>Off-peak Headway</span><strong>10 mins</strong></div>
+              </div>
+              <p className="tech-specs-framing">
+                With peak headway this tight and capacity this high, there is zero slack for a badly-sequenced fleet. Every delayed train induction ripples through the system, leaving platforms crowded and schedules compromised.
+              </p>
+            </div>
           </div>
         </div>
       </section>

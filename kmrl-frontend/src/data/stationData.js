@@ -30,7 +30,7 @@ export const NETWORK_STATIONS = [
   { id: 'vadakkekotta', name: 'Vadakkekotta', lat: 9.9528098, lng: 76.339488 },
   { id: 'sn_junction', name: 'SN Junction', lat: 9.9546771, lng: 76.3460351 },
   { id: 'tripunithura', name: 'Tripunithura Terminal', lat: 9.9505728, lng: 76.3517236 }
-].map(s => ({ ...s, hours: '06:00 AM – 10:00 PM' })) // Verified general operating window
+].map(s => ({ ...s, hours: '06:00 AM – 11:00 PM' })) // Verified general operating window
 
 // Distinct point for Muttom Depot (Project focus)
 export const MUTTOM_DEPOT = {

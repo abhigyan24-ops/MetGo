@@ -170,12 +170,19 @@ export default function NetworkMap() {
                       <span className="nm-card-icon">🕐</span>
                       <span>{selected.hours}</span>
                     </div>
-                    {/* Add Sequence Number to fill dead space */}
+                    {/* Replace Sequence hack with real headway data */}
                     <div className="nm-card-row">
-                      <span className="nm-card-icon">🚉</span>
+                      <span className="nm-card-icon">⏱️</span>
                       <span>
-                        <strong>Sequence: </strong>
-                        Station {(NETWORK_STATIONS.findIndex(s => s.id === selected.id) + 1)} of 25
+                        <strong>Peak Headway: </strong>
+                        5-7 mins
+                      </span>
+                    </div>
+                    <div className="nm-card-row">
+                      <span className="nm-card-icon">⏲️</span>
+                      <span>
+                        <strong>Off-peak: </strong>
+                        10 mins
                       </span>
                     </div>
                   </>
