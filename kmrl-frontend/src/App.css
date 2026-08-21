@@ -555,6 +555,7 @@
 .legend-dot.maintenance { background: var(--color-signal-amber); }
 .legend-dot.cleaning    { background: #a78bfa; }
 .legend-dot.standby     { background: var(--color-signal-blue); }
+.legend-dot.breakdown   { background: var(--color-signal-red); }
 .legend-dot.empty       { background: var(--color-border-strong); }
 
 .yard-grid { display: grid; gap: 8px; overflow: auto; }
@@ -626,6 +627,7 @@
 .train-pill.maintenance { background: var(--color-signal-amber); color: var(--color-bg); }
 .train-pill.cleaning { background: #a78bfa; color: var(--color-bg); }
 .train-pill.standby { background: var(--color-signal-blue); color: var(--color-bg); }
+.train-pill.breakdown { background: var(--color-signal-red); color: var(--color-bg); }
 
 .bay > span, .empty {
   color: var(--color-border-strong);

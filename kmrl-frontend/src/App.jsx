@@ -770,9 +770,10 @@ function Yard({ plan, trains, compact = false, onOpen }) {
       />
       <div className="yard-legend">
         <span><i className="legend-dot service" />Service</span>
+        <span><i className="legend-dot standby" />Standby</span>
         <span><i className="legend-dot maintenance" />Maintenance</span>
         <span><i className="legend-dot cleaning" />Cleaning</span>
-        <span><i className="legend-dot standby" />Standby</span>
+        <span><i className="legend-dot breakdown" />Breakdown</span>
         <span><i className="legend-dot empty" />Empty</span>
       </div>
       <div className="yard-grid">

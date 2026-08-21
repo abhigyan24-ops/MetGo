@@ -273,11 +273,10 @@ class ExplainabilityEngine:
         """Generate explanation for breakdown status."""
         
         return (
-            f"Train {train.train_id} is marked as breakdown status, indicating an "
-            f"unplanned operational failure. This is a hard constraint forcing the train "
-            f"out of service until the issue is diagnosed and resolved. "
-            f"This train cannot be assigned to any service or scheduled maintenance "
-            f"activities until cleared by engineering."
+            f"Train {train.train_id} was reported broken down via manual override — "
+            f"immediately removed from the service pool. This is an unplanned failure, "
+            f"not driven by a scheduled job card. This is a hard constraint forcing "
+            f"the train out of service."
         )
     
     # -----------------------------------------------------------------------

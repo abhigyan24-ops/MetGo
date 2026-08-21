@@ -85,8 +85,9 @@ def apply_overrides(model, assign_vars, overrides):
             )
 
         if override.override_type == "breakdown":
-            model.Add(assign_vars[(override.train_id, SERVICE)] == 0)
-            reasons[override.train_id] = "Manual override: reported breakdown -- service prohibited."
+            from src.solver.states import BREAKDOWN
+            model.Add(assign_vars[(override.train_id, BREAKDOWN)] == 1)
+            reasons[override.train_id] = "Manual override: reported breakdown -- immediately removed from service pool."
         elif override.override_type == "cert_expired":
             model.Add(assign_vars[(override.train_id, SERVICE)] == 0)
             reasons[override.train_id] = "Manual override: fitness certificate simulated as expired -- service prohibited."
