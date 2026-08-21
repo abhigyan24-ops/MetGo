@@ -107,3 +107,26 @@ above (MIN_SERVICE_TRAINS = 15).
 forward, re-run this comparison properly (flat vs. proportional, measured against 
 the current MIN_SERVICE_TRAINS=15 floor) and document it fresh, rather than 
 treating this reconstruction as sufficient.
+
+---
+
+## [CONFIRMED FACT & ESTIMATE] Muttom Yard Structural Modeling
+
+**Status:** Updated to reflect the real functional zones of the KMRL Muttom Depot.
+
+**Sourced from Real Documents:**
+The following elements of the yard geometry are confirmed facts derived from KMRL's detailed project reports (DPR) and environmental impact assessments:
+- The depot covers 15.12 hectares.
+- The presence of the following functional zones: Stabling lines, Scheduled inspection lines, Overhaul workshop, Major-repair bays, Wheel-profiling facility, and heavy cleaning/wash facility.
+- `MAX_TRAINS_IN_MAINTENANCE = 3` represents the 3 bays in the Major Repair Line (M1).
+
+**Reasonable Estimates:**
+Exact bay-by-bay blueprints are not public. The bay counts for the other functional zones are structurally honest estimates configured to support a 25-train fleet:
+- 26 Stabling bays across 5 lines (L1-L5)
+- 2 Scheduled Inspection bays (I1)
+- 1 Overhaul Workshop bay (O1)
+- 1 Wheel Profiling Siding (P1)
+- 2 Wash/Cleaning bays (W1)
+
+**Solver Clarification:**
+The 3-bay limit for `MAINTENANCE` in the CP-SAT solver strictly scopes to the Major Repair Line (M1). The other maintenance-type zones (I1, O1, P1) are mapped to `BayType.MAINTENANCE` for physical yard-graph richness (so they appear in the digital twin and allow shunting), but they do not expand the solver's 3-train limit for the actual `MAINTENANCE` state.

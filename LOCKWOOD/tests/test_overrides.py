@@ -15,7 +15,7 @@ from src.solver.states import CLEANING, MAINTENANCE, SERVICE
 
 
 def _solve_with_overrides(overrides):
-    model, assign_vars = build_model(TEST_FLEET_6, TEST_YARD_LAYOUT_6)
+    model, assign_vars = build_model(TEST_FLEET_6, TEST_YARD_LAYOUT_6, overrides=overrides)
     reasons = apply_overrides(model, assign_vars, overrides)
     model.Minimize(build_total_objective(TEST_FLEET_6, assign_vars, TEST_YARD_LAYOUT_6))
     solver = cp_model.CpSolver()

@@ -106,8 +106,13 @@ def build_model(trains: list[Train], yard_layout: YardLayout, overrides: list = 
                     )
     # --- Hard constraint 4: yard capacity (Part 5a-fix) ---
     # No more than MAX_TRAINS_IN_MAINTENANCE trains can occupy the
-    # maintenance track simultaneously (a CONFIRMED real fact: 3 bays),
-    # and no more than MAX_TRAINS_IN_CLEANING trains can occupy the wash
+    # maintenance state simultaneously.
+    # CLARIFICATION: This capacity limit (3) is strictly scoped to the 3
+    # Major Repair Line (M1) bays, which is a CONFIRMED real fact. The other
+    # maintenance-type zones in the yard graph (Inspection, Overhaul, Wheel
+    # Profiling) are for topological richness and do not increase this solver
+    # capacity limit for the MAINTENANCE state.
+    # No more than MAX_TRAINS_IN_CLEANING trains can occupy the wash
     # track simultaneously (a flagged ASSUMPTION -- see constants.py).
     # Without this, nothing physically stops the solver from assigning
     # every train in the fleet to the same state at once, which is

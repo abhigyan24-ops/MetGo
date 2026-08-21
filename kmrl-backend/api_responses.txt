@@ -1,7 +1,7 @@
 === BASELINE PLAN GENERATION ===
 {
-  "plan_id": "plan_2026_08_21_012224",
-  "generated_at": "2026-08-21T01:22:24.005885+00:00",
+  "plan_id": "plan_2026_08_21_013126",
+  "generated_at": "2026-08-21T01:31:26.014676+00:00",
   "assignments": [
     {
       "train_id": "T01",
@@ -159,8 +159,8 @@
 
 === WHAT-IF T09 BREAKDOWN ===
 {
-  "plan_id": "whatif_T09_breakdown_1787255546",
-  "generated_at": "2026-08-21T01:22:26.661491+00:00",
+  "plan_id": "whatif_T09_breakdown_1787256089",
+  "generated_at": "2026-08-21T01:31:29.975278+00:00",
   "assignments": [
     {
       "train_id": "T01",

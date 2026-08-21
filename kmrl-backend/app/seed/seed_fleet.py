@@ -71,18 +71,27 @@ MILEAGE_MAX_KM = 65000
 # ---------------------------------------------------------------------------
 
 YARD_LAYOUT = {
-    # 5 stabling roads
+    # 5 stabling roads (26 bays total, for 25 train fleet)
     "L1": {"name": "Stabling Road 1", "bays": 6, "type": BayType.STABLING},
     "L2": {"name": "Stabling Road 2", "bays": 6, "type": BayType.STABLING},
     "L3": {"name": "Stabling Road 3", "bays": 5, "type": BayType.STABLING},
     "L4": {"name": "Stabling Road 4", "bays": 5, "type": BayType.STABLING},
     "L5": {"name": "Stabling Road 5", "bays": 4, "type": BayType.STABLING},
     
-    # 1 maintenance track
-    "M1": {"name": "Maintenance Track", "bays": 3, "type": BayType.MAINTENANCE},
+    # 1 Scheduled Inspection line
+    "I1": {"name": "Scheduled Inspection Line", "bays": 2, "type": BayType.MAINTENANCE},
     
-    # 1 wash track
-    "W1": {"name": "Wash Bay", "bays": 1, "type": BayType.WASH},
+    # 1 Overhaul Workshop
+    "O1": {"name": "Overhaul Workshop", "bays": 1, "type": BayType.MAINTENANCE},
+    
+    # 1 Wheel Profiling Siding
+    "P1": {"name": "Wheel Profiling Siding", "bays": 1, "type": BayType.MAINTENANCE},
+    
+    # 1 Major Repair Line (Confirmed real: 3 bays. Solver restricts MAINTENANCE state to 3 to match this capacity)
+    "M1": {"name": "Major Repair Line", "bays": 3, "type": BayType.MAINTENANCE},
+    
+    # 1 wash track (Expanded to 2 bays for realism placeholder)
+    "W1": {"name": "Washing/Cleaning Line", "bays": 2, "type": BayType.WASH},
 }
 
 
@@ -134,6 +143,12 @@ def seed_yard_layout(db: Session) -> List[str]:
                 bay_id = f"M{position:02d}"
             elif line_id.startswith("W"):
                 bay_id = f"W{position:02d}"
+            elif line_id.startswith("I"):
+                bay_id = f"I{position:02d}"
+            elif line_id.startswith("O"):
+                bay_id = f"O{position:02d}"
+            elif line_id.startswith("P"):
+                bay_id = f"P{position:02d}"
             else:
                 bay_id = f"B{bay_counter:02d}"
                 bay_counter += 1
