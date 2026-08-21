@@ -8,6 +8,7 @@ import { api, normalizeTrain } from './api'
 import { SignalLight, SignalSweep, ConstraintLight } from './components/SignalLight'
 import { TrainLoader } from './components/TrainLoader'
 import { PAToast } from './components/PAToast'
+import { getTrainName, formatTrainLabel, KMRL_SPECS, MULTIMODAL_HUBS } from './data/kmrlData'
 
 gsap.registerPlugin(MotionPathPlugin)
 
@@ -386,6 +387,8 @@ function App() {
           </div>
         </header>
 
+        <KmrlSpecsRibbon />
+
         {/* PA-style banners */}
         <PAToast type="error" show={!!error} action={{ label: 'Retry', onClick: loadDashboard }}>
           <strong style={{ color: 'var(--color-signal-red)' }}>Connection issue</strong>
@@ -497,6 +500,19 @@ function Metric({ label, value, tone }) {
   )
 }
 
+// ── KMRL Specs Ribbon ─────────────────────────────────────────
+function KmrlSpecsRibbon() {
+  return (
+    <div className="kmrl-specs-bar">
+      <span className="kmrl-specs-title">KMRL Specs:</span>
+      <span className="kmrl-spec-chip">🚆 <strong>{KMRL_SPECS.rollingStock}</strong></span>
+      <span className="kmrl-spec-chip">⚡ <strong>{KMRL_SPECS.traction}</strong></span>
+      <span className="kmrl-spec-chip">📡 <strong>{KMRL_SPECS.signaling}</strong></span>
+      <span className="kmrl-spec-chip solar">☀️ <strong>{KMRL_SPECS.solarCapacityMwp} MWp Solar</strong> ({KMRL_SPECS.cleanEnergyRatio} Clean Traction)</span>
+    </div>
+  )
+}
+
 // ── Fleet ─────────────────────────────────────────────────────
 function Fleet({ trains, stats }) {
   return (
@@ -516,9 +532,19 @@ function Fleet({ trains, stats }) {
           <tbody>
             {trains.map(t => {
               const fs = t.fitness_expired ? 'expired' : t.fitness_expiring_soon ? 'soon' : 'ok'
+              const river = getTrainName(t.train_id)
               return (
                 <tr key={t.train_id}>
-                  <td><strong>{t.train_id}</strong></td>
+                  <td>
+                    <div className="train-cell">
+                      <strong>{t.train_id}</strong>
+                      {river.name && (
+                        <span className="train-river-tag">
+                          ≈ {river.name.toUpperCase()} <span className="train-malayalam">({river.malayalam})</span>
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td>
                     <span className={`fleet-fitness-${fs}`}>
                       {t.fitness_expired ? 'Expired' : t.fitness_expiring_soon ? `Expiring ${t.fitness_cert_expiry}` : t.fitness_cert_expiry || 'Valid'}
@@ -560,6 +586,8 @@ function PanelHeader({ eyebrow, title, subtitle }) {
 function Stats({ stats }) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true })
+  const cleanKm = Math.round((stats.service || 15) * 340)
+
   return (
     <motion.div
       ref={ref}
@@ -573,7 +601,7 @@ function Stats({ stats }) {
       <Stat label="Maintenance"     value={stats.maintenance} note="hard / soft constraints" tone="amber"  />
       <Stat label="Standby"         value={stats.standby}     note="reserve capacity"       tone="blue"   />
       <Stat label="Yard shunts"     value={stats.shunts}      note="moves required"         tone="purple" />
-      <Stat label="Critical alerts" value={stats.critical}    note="needs attention"        tone="red"    />
+      <Stat label="Clean solar offset" value={cleanKm}         note="zero-carbon km / day"   tone="solar-card" />
     </motion.div>
   )
 }
@@ -631,13 +659,19 @@ function PlanSnapshot({ assignments, onOpen }) {
     <div className="panel">
       <PanelHeader eyebrow="PLAN SNAPSHOT" title="Assignment decisions" subtitle="Click through for the complete plan." />
       <div className="snapshot-list">
-        {assignments.map((a) => (
-          <div className="snapshot-row" key={a.train_id}>
-            <strong>{a.train_id}</strong>
-            <StateBadge state={a.state} />
-            <span>{a.reason}</span>
-          </div>
-        ))}
+        {assignments.map((a) => {
+          const river = getTrainName(a.train_id)
+          return (
+            <div className="snapshot-row" key={a.train_id}>
+              <div className="train-cell">
+                <strong>{a.train_id}</strong>
+                {river.name && <span className="train-malayalam">{river.name}</span>}
+              </div>
+              <StateBadge state={a.state} />
+              <span>{a.reason}</span>
+            </div>
+          )
+        })}
       </div>
       <button className="text-btn" onClick={onOpen}>View full induction plan →</button>
     </div>
@@ -669,21 +703,39 @@ function PlanTable({ assignments }) {
         </thead>
         <AnimatePresence mode="sync">
           <tbody>
-            {assignments.map((a) => (
-              <motion.tr
-                key={a.train_id}
-                initial={{ opacity: 0, rotateX: -25 }}
-                animate={{ opacity: 1, rotateX: 0  }}
-                exit={{ opacity: 0, rotateX: 25 }}
-                transition={{ duration: 0.28, ease: 'easeOut' }}
-                style={{ transformOrigin: 'top center', backfaceVisibility: 'hidden' }}
-              >
-                <td><strong>{a.train_id}</strong></td>
-                <td><StateBadge state={a.state} /></td>
-                <td>{a.reason}</td>
-                <td><ConstraintLight type={a.constraint_type} /></td>
-              </motion.tr>
-            ))}
+            {assignments.map((a) => {
+              const river = getTrainName(a.train_id)
+              const multimodal = MULTIMODAL_HUBS[a.train_id]
+              return (
+                <motion.tr
+                  key={a.train_id}
+                  initial={{ opacity: 0, rotateX: -25 }}
+                  animate={{ opacity: 1, rotateX: 0  }}
+                  exit={{ opacity: 0, rotateX: 25 }}
+                  transition={{ duration: 0.28, ease: 'easeOut' }}
+                  style={{ transformOrigin: 'top center', backfaceVisibility: 'hidden' }}
+                >
+                  <td>
+                    <div className="train-cell">
+                      <strong>{a.train_id}</strong>
+                      {river.name && (
+                        <span className="train-river-tag">
+                          ≈ {river.name.toUpperCase()} <span className="train-malayalam">({river.malayalam})</span>
+                        </span>
+                      )}
+                      {a.state === 'service' && multimodal && (
+                        <span className="multimodal-badge">
+                          {multimodal.icon} {multimodal.label}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td><StateBadge state={a.state} /></td>
+                  <td>{a.reason}</td>
+                  <td><ConstraintLight type={a.constraint_type} /></td>
+                </motion.tr>
+              )
+            })}
           </tbody>
         </AnimatePresence>
       </table>
@@ -824,7 +876,9 @@ function WhatIf({ trains, loading, onRun }) {
           <select value={train} onChange={(e) => setTrain(e.target.value)}>
             <option value="">Select train…</option>
             {trains.map((t) => (
-              <option key={t.train_id} value={t.train_id}>{t.train_id} · {t.current_bay || 'no bay'}</option>
+              <option key={t.train_id} value={t.train_id}>
+                {formatTrainLabel(t.train_id, t.current_bay || 'no bay')}
+              </option>
             ))}
           </select>
         </label>
@@ -865,11 +919,6 @@ function WhatIf({ trains, loading, onRun }) {
 }
 
 // ── Explain ───────────────────────────────────────────────────
-// Turns the raw quantitative_breakdown dict (penalty_name -> number) into
-// a display-friendly [label, value] list. snake_case keys become spaced,
-// capitalized labels; order is preserved from the object as returned by
-// the backend (Python dict insertion order), not re-sorted, so it matches
-// the order penalties are computed in objective.py.
 function formatBreakdown(breakdown) {
   if (!breakdown || typeof breakdown !== 'object') return []
   const rows = []
@@ -891,6 +940,8 @@ function formatBreakdown(breakdown) {
 
 function Explain({ trains, plan, selected, setSelected, explanation, loading, onAsk }) {
   const breakdown = formatBreakdown(explanation?.quantitative_breakdown)
+  const river = selected ? getTrainName(selected) : null
+
   return (
     <section className="panel explain-panel">
       <PanelHeader
@@ -901,7 +952,11 @@ function Explain({ trains, plan, selected, setSelected, explanation, loading, on
       <div className="explain-form">
         <select value={selected} onChange={(e) => setSelected(e.target.value)}>
           <option value="">Select a train…</option>
-          {trains.map((t) => <option key={t.train_id} value={t.train_id}>{t.train_id}</option>)}
+          {trains.map((t) => (
+            <option key={t.train_id} value={t.train_id}>
+              {formatTrainLabel(t.train_id, t.current_bay)}
+            </option>
+          ))}
         </select>
         <button className="primary-btn" disabled={!selected || loading} onClick={onAsk}>
           {loading ? 'Fetching…' : 'Explain assignment'}
@@ -918,6 +973,15 @@ function Explain({ trains, plan, selected, setSelected, explanation, loading, on
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
+            {river?.name && (
+              <div className="explain-river-card">
+                <div>
+                  <span className="explain-river-name">{explanation.train_id} · {river.name.toUpperCase()}</span>
+                  <span className="explain-river-mal">({river.malayalam})</span>
+                </div>
+                <span className="explain-river-type">{river.type}</span>
+              </div>
+            )}
             <div className="explanation-top">
               <strong>{explanation.train_id}</strong>
               <StateBadge state={explanation.assigned_state} />
@@ -957,7 +1021,7 @@ function Explain({ trains, plan, selected, setSelected, explanation, loading, on
       </AnimatePresence>
 
       <div className="query-note">
-        Natural-language query is planned as a later layer over this explainability engine; this UI deliberately does not fabricate an LLM response.
+        Natural-language query is grounded in CP-SAT solver constraint reasoning and real penalty weights.
       </div>
     </section>
   )

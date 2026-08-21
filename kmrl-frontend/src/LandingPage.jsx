@@ -829,7 +829,9 @@ export default function LandingPage() {
       <section className="lp-grounding">
         <div className="lp-grounding-content">
           <h2>A metro like no other.</h2>
-          <p>Kochi Metro operates the world's first metro system with entirely women-run operations, and is India's first fully solar-powered metro network. MetGo brings the same level of innovation to its nightly operations.</p>
+          <p>
+            Kochi Metro operates 25 Alstom Metropolis trainsets christened after India's sacred rivers (Krishna, Nila, Periyar, Ganga), powered by a 5.389 MWp solar microgrid across Muttom Depot and 25 stations with 100% Kudumbashree-managed station facilities. MetGo brings the same precision and sustainability to its overnight induction planning.
+          </p>
         </div>
       </section>
 
