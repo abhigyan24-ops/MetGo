@@ -1910,3 +1910,224 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* ── INFEASIBLE & Scenario UI ─────────────────────────────────── */
+.infeasible-pill {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  color: #f87171 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.infeasible-global-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.infeasible-global-banner strong {
+  color: #f87171;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+.infeasible-global-banner p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.infeasible-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+.infeasible-alert-banner strong {
+  color: #f87171;
+  font-size: 12px;
+  display: block;
+}
+.infeasible-alert-banner span {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.infeasible-card {
+  margin-top: 24px;
+  padding: 20px 24px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+}
+.infeasible-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.infeasible-header strong {
+  font-size: 14px;
+  color: #f87171;
+  letter-spacing: 0.04em;
+}
+.infeasible-card p {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.infeasible-reasons {
+  margin: 0 0 18px 20px;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+.infeasible-reasons li {
+  margin-bottom: 4px;
+}
+.infeasible-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.scenario-success-card {
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.scenario-success-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scenario-success-header strong {
+  font-size: 13px;
+  color: #34d399;
+}
+.scenario-success-card p {
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.shunt-empty-note {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.state-filter-select {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.state-filter-select:hover,
+.state-filter-select:focus {
+  border-color: var(--color-accent);
+}
+
+/* ── Mobile / Responsive Pass ─────────────────────────────────── */
+@media (max-width: 900px) {
+  .app-shell {
+    flex-direction: column;
+  }
+  .sidebar {
+    position: relative;
+    width: 100%;
+    inset: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+    padding: 14px 16px;
+    box-sizing: border-box;
+  }
+  .sidebar .brand {
+    padding-bottom: 14px;
+  }
+  .sidebar nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 6px;
+  }
+  .sidebar nav .nav-item {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .sidebar-bottom {
+    display: none;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .grid-two {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    height: auto;
+    padding: 12px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .top-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .toolbar input, .toolbar select {
+    width: 100%;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence, useInView } from 'framer-motion'
+import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import gsap from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import './App.css'
@@ -118,8 +118,11 @@ const YARD_LAYOUT = {
     { line_id: 'L3', line_name: 'Stabling Road 3', bays: ['B13','B14','B15','B16','B17'] },
     { line_id: 'L4', line_name: 'Stabling Road 4', bays: ['B18','B19','B20','B21','B22'] },
     { line_id: 'L5', line_name: 'Stabling Road 5', bays: ['B23','B24','B25','B26'] },
-    { line_id: 'M1', line_name: 'Maintenance Track', bays: ['M01','M02','M03'] },
-    { line_id: 'W1', line_name: 'Wash Bay', bays: ['W01'] },
+    { line_id: 'I1', line_name: 'Scheduled Inspection', bays: ['I01','I02'] },
+    { line_id: 'O1', line_name: 'Overhaul Workshop', bays: ['O01'] },
+    { line_id: 'P1', line_name: 'Wheel Profiling', bays: ['P01'] },
+    { line_id: 'M1', line_name: 'Major Repair Line', bays: ['M01','M02','M03'] },
+    { line_id: 'W1', line_name: 'Wash Bay', bays: ['W01', 'W02'] },
   ],
 }
 
@@ -178,6 +181,7 @@ function App() {
   const [explanation, setExplanation]   = useState(null)
   const [explainLoading, setExplainLoading] = useState(false)
   const [search, setSearch]             = useState('')
+  const [stateFilter, setStateFilter]   = useState('all')
 
   const loadDashboard = useCallback(async () => {
     setLoading(true)
@@ -244,6 +248,9 @@ function App() {
 
   const alerts = useMemo(() => {
     const result = []
+    if (plan?.status === 'INFEASIBLE') {
+      result.push({ level: 'critical', train: 'SYSTEM', text: 'INFEASIBLE PLAN: Cannot meet minimum 15-train peak service floor.' })
+    }
     trains.forEach((train) => {
       const critical = train.job_cards.filter((j) => j.status === 'open' && j.severity === 'critical')
       if (critical.length) result.push({ level: 'critical', train: train.train_id, text: `${critical[0].id} is open and critical.` })
@@ -252,7 +259,7 @@ function App() {
       if (train.cleaning_due) result.push({ level: 'info', train: train.train_id, text: 'Cleaning is due.' })
     })
     return result
-  }, [trains])
+  }, [trains, plan])
 
   const stats = useMemo(() => {
     const assignments = plan?.assignments || []
@@ -263,6 +270,7 @@ function App() {
       maintenance: count('maintenance'),
       standby:     count('standby'),
       cleaning:    count('cleaning'),
+      breakdown:   count('breakdown'),
       shunts:      plan?.shunts_required?.length || 0,
       critical:    alerts.filter((a) => a.level === 'critical').length,
     }
@@ -270,10 +278,12 @@ function App() {
 
   const filteredAssignments = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return (plan?.assignments || []).filter((a) =>
-      !q || `${a.train_id} ${a.state} ${a.reason}`.toLowerCase().includes(q)
-    )
-  }, [plan, search])
+    return (plan?.assignments || []).filter((a) => {
+      const matchText = !q || `${a.train_id} ${a.state} ${a.reason}`.toLowerCase().includes(q)
+      const matchState = stateFilter === 'all' || a.state === stateFilter
+      return matchText && matchState
+    })
+  }, [plan, search, stateFilter])
 
   async function regenerate() {
     setGenerating(true)
@@ -295,17 +305,22 @@ function App() {
     setError('')
     try {
       const result = await api.whatIf({ train_id: trainId, status })
-      setScenario({ override: { train_id: trainId, status }, result })
-      // The current backend contract returns the affected subset; overlay it on the baseline plan.
-      setPlan((current) => ({
-        ...current,
-        plan_id:         result.plan_id,
-        generated_at:    result.generated_at,
-        assignments: (current?.assignments || []).map((assignment) =>
-          result.assignments?.find((candidate) => candidate.train_id === assignment.train_id) || assignment
-        ),
-        shunts_required: result.shunts_required || current?.shunts_required || [],
-      }))
+      const isInfeasible = result.status === 'INFEASIBLE' || (!result.assignments || result.assignments.length === 0)
+      setScenario({ override: { train_id: trainId, status }, result, isInfeasible })
+      
+      if (!isInfeasible) {
+        // Overlay affected subset on baseline plan
+        setPlan((current) => ({
+          ...current,
+          plan_id:         result.plan_id,
+          status:          result.status || 'FEASIBLE',
+          generated_at:    result.generated_at,
+          assignments: (current?.assignments || []).map((assignment) =>
+            result.assignments?.find((candidate) => candidate.train_id === assignment.train_id) || assignment
+          ),
+          shunts_required: result.shunts_required || current?.shunts_required || [],
+        }))
+      }
     } catch (err) {
       setError(err.message || 'What-if request failed.')
     } finally {
@@ -335,6 +350,8 @@ function App() {
   if (loading || bootError) return (
     <BootScreen bootStatus={bootStatus} error={bootError} onRetry={loadDashboard} />
   )
+
+  const isPlanInfeasible = plan?.status === 'INFEASIBLE'
 
   return (
     <div className="app-shell">
@@ -382,7 +399,11 @@ function App() {
             <h1>MetGo Dashboard</h1>
           </div>
           <div className="top-actions">
-            <span className="live-pill"><span className="status-dot online" /> LIVE BACKEND</span>
+            {isPlanInfeasible ? (
+              <span className="live-pill infeasible-pill"><SignalLight state="red" size="sm" pulse /> INFEASIBLE STATE</span>
+            ) : (
+              <span className="live-pill"><span className="status-dot online" /> LIVE BACKEND</span>
+            )}
             <button className="refresh-btn" onClick={loadDashboard}>↻ Refresh</button>
           </div>
         </header>
@@ -394,7 +415,7 @@ function App() {
           {error}
         </PAToast>
         <PAToast type="scenario" show={!!scenario} action={{ label: 'Return to baseline', onClick: loadDashboard }}>
-          <strong>{scenario?.override.train_id}</strong> → {scenario?.override.status}
+          <strong>{scenario?.override.train_id}</strong> → {scenario?.override.status} {scenario?.isInfeasible ? '(INFEASIBLE)' : ''}
         </PAToast>
 
         {/* ── View Transitions ─────────────────────────────── */}
@@ -408,6 +429,15 @@ function App() {
           >
             {activeView === 'overview' && (
               <>
+                {isPlanInfeasible && (
+                  <div className="infeasible-global-banner">
+                    <SignalLight state="red" size="md" pulse />
+                    <div>
+                      <strong>INFEASIBLE INDUCTION PLAN</strong>
+                      <p>The CP-SAT solver cannot produce a valid schedule: hard constraints prevent meeting the 15-train minimum revenue service floor. Immediate dispatch intervention required.</p>
+                    </div>
+                  </div>
+                )}
                 <section className="hero-card">
                   <div>
                     <span className="eyebrow light">NEXT SERVICE DAY</span>
@@ -426,7 +456,6 @@ function App() {
                     <div className="hero-meta">
                       Generated {(() => {
                         let raw = plan?.generated_at || '';
-                        // Backend bug sends +00:00Z which makes JS Date crash. Clean it up.
                         if (raw.includes('+') && raw.endsWith('Z')) raw = raw.slice(0, -1);
                         let d = new Date(raw);
                         if (isNaN(d)) return 'just now';
@@ -447,7 +476,7 @@ function App() {
                 </section>
                 <Stats stats={stats} />
                 <section className="grid-two">
-                  <Alerts alerts={alerts} onSelect={(id) => { setExplainTrain(id); go('explain') }} />
+                  <Alerts alerts={alerts} isInfeasible={isPlanInfeasible} onSelect={(id) => { setExplainTrain(id); go('explain') }} />
                   <PlanSnapshot assignments={plan?.assignments || []} onOpen={() => go('plan')} />
                 </section>
                 <Yard plan={plan} trains={trains} compact onOpen={() => go('yard')} />
@@ -460,13 +489,33 @@ function App() {
                 <PanelHeader eyebrow="DECISION OUTPUT" title="Tonight's induction plan" subtitle="Assignments returned directly by POST /plan/generate." />
                 <div className="toolbar">
                   <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search train, state or reason…" />
+                  <select 
+                    value={stateFilter} 
+                    onChange={(e) => setStateFilter(e.target.value)}
+                    className="state-filter-select"
+                  >
+                    <option value="all">All states ({plan?.assignments?.length || 0})</option>
+                    <option value="service">Service only ({stats.service})</option>
+                    <option value="standby">Standby only ({stats.standby})</option>
+                    <option value="maintenance">Maintenance only ({stats.maintenance})</option>
+                    <option value="cleaning">Cleaning only ({stats.cleaning})</option>
+                    <option value="breakdown">Breakdown only ({stats.breakdown})</option>
+                  </select>
                   <span>{filteredAssignments.length} assignments</span>
                 </div>
                 <PlanTable assignments={filteredAssignments} />
               </section>
             )}
             {activeView === 'yard'    && <Yard plan={plan} trains={trains} />}
-            {activeView === 'whatif'  && <WhatIf trains={trains} loading={scenarioLoading} onRun={runScenario} />}
+            {activeView === 'whatif'  && (
+              <WhatIf
+                trains={trains}
+                loading={scenarioLoading}
+                onRun={runScenario}
+                scenario={scenario}
+                onReset={loadDashboard}
+              />
+            )}
             {activeView === 'explain' && (
               <Explain
                 trains={trains}
@@ -602,11 +651,20 @@ function Stat({ label, value, note, tone = '' }) {
 }
 
 // ── Alerts ────────────────────────────────────────────────────
-function Alerts({ alerts, onSelect }) {
+function Alerts({ alerts, isInfeasible, onSelect }) {
   const alertState = { critical: 'red', warning: 'amber', info: 'blue' }
   return (
     <div className="panel alerts-card">
       <PanelHeader eyebrow="FLEET HEALTH" title="Alerts & constraints" subtitle="Derived from live train detail records." />
+      {isInfeasible && (
+        <div className="infeasible-alert-banner">
+          <SignalLight state="red" size="md" pulse={true} />
+          <div>
+            <strong>Solver State: INFEASIBLE</strong>
+            <span>Active plan cannot meet minimum peak service floor of 15 trains. Check blocked units below.</span>
+          </div>
+        </div>
+      )}
       <motion.div
         className="alert-list"
         variants={staggerFast}
@@ -675,6 +733,8 @@ function StateBadge({ state }) {
 
 // ── Plan Table — departure-board flip ─────────────────────────
 function PlanTable({ assignments }) {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
     <div className="table-wrap">
       <table>
@@ -694,9 +754,9 @@ function PlanTable({ assignments }) {
               return (
                 <motion.tr
                   key={a.train_id}
-                  initial={{ opacity: 0, rotateX: -25 }}
-                  animate={{ opacity: 1, rotateX: 0  }}
-                  exit={{ opacity: 0, rotateX: 25 }}
+                  initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, rotateX: -25 }}
+                  animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, rotateX: 0 }}
+                  exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, rotateX: 25 }}
                   transition={{ duration: 0.28, ease: 'easeOut' }}
                   style={{ transformOrigin: 'top center', backfaceVisibility: 'hidden' }}
                 >
@@ -732,41 +792,25 @@ function PlanTable({ assignments }) {
 function Yard({ plan, trains, compact = false, onOpen }) {
   const assignmentMap = Object.fromEntries((plan?.assignments || []).map((a) => [a.train_id, a]))
   
-  // Create a continuous live-feel simulation. If the plan has shunts, animate those.
-  // Otherwise, inject a demo shunt (like T05 to W1) to keep the digital twin looking alive.
+  // Real shunts only — no synthetic demo fallbacks
   const shunts = useMemo(() => {
-    const actualShunts = plan?.shunts_required || []
-    if (actualShunts.length > 0) return actualShunts
-    const t05 = trains.find(t => t.train_id === 'T05')
-    return t05 ? [{ train_id: 'T05', from_bay: t05.current_bay, to_bay: 'W1' }] : []
-  }, [plan?.shunts_required, trains])
-
-  const [simulating, setSimulating] = useState(false)
-  useEffect(() => {
-    if (shunts.length === 0) return
-    const interval = setInterval(() => setSimulating(s => !s), 3000)
-    return () => clearInterval(interval)
-  }, [shunts])
+    return plan?.shunts_required || []
+  }, [plan?.shunts_required])
 
   const bayMap = useMemo(() => {
     const map = {}
     trains.forEach((t) => {
-      let current = t.current_bay
-      if (simulating) {
-        const shunt = shunts.find(s => s.train_id === t.train_id)
-        if (shunt) current = shunt.to_bay
-      }
-      if (current) map[current] = t
+      if (t.current_bay) map[t.current_bay] = t
     })
     return map
-  }, [trains, simulating, shunts])
+  }, [trains])
 
   return (
     <section className={`panel yard-panel ${compact ? 'compact' : ''}`}>
       <PanelHeader
         eyebrow="DIGITAL TWIN"
         title="Muttom Yard"
-        subtitle={shunts.length > 0 ? (simulating ? "Simulating planned shunts..." : "Live train positions from fleet API.") : "Live train positions from the fleet API."}
+        subtitle="Live train positions from the fleet API."
       />
       <div className="yard-legend">
         <span><i className="legend-dot service" />Service</span>
@@ -786,8 +830,6 @@ function Yard({ plan, trains, compact = false, onOpen }) {
             <div className="bays">
               {line.bays.map((bay) => {
                 const train = bayMap[bay]
-                const originalTrain = trains.find(t => t.current_bay === bay)
-                // Use train from simulating or actual train state
                 const activeTrainId = train ? train.train_id : null
                 const state = activeTrainId ? assignmentMap[activeTrainId]?.state || 'standby' : 'empty'
                 const shuntFromHere = shunts.find((s) => s.from_bay === bay)
@@ -825,12 +867,16 @@ function Yard({ plan, trains, compact = false, onOpen }) {
           </div>
         ))}
       </div>
-      {shunts.length > 0 && (
+      {shunts.length > 0 ? (
         <div className="shunt-strip">
           <strong>{shunts.length} planned shunt{shunts.length > 1 ? 's' : ''}</strong>
           {shunts.map((s) => (
             <span key={`${s.train_id}-${s.to_bay}`}>{s.train_id} {s.from_bay} → {s.to_bay}</span>
           ))}
+        </div>
+      ) : (
+        <div className="shunt-empty-note">
+          <span>Yard shunting routing: 0 moves required for current induction configuration.</span>
         </div>
       )}
       {compact && <button className="text-btn" onClick={onOpen}>Open yard digital twin →</button>}
@@ -839,14 +885,14 @@ function Yard({ plan, trains, compact = false, onOpen }) {
 }
 
 // ── What-If ───────────────────────────────────────────────────
-function WhatIf({ trains, loading, onRun }) {
+function WhatIf({ trains, loading, onRun, scenario, onReset }) {
   const [train, setTrain] = useState('')
   const [status, setStatus] = useState('breakdown')
   const scenarios = [
-    ['breakdown',    'Simulate breakdown'],
-    ['maintenance',  'Force maintenance'],
-    ['cleaning',     'Force cleaning'],
-    ['cert_expired', 'Simulate cert expiry'],
+    ['breakdown',    'Simulate breakdown (unplanned failure)'],
+    ['maintenance',  'Force maintenance (job card repair)'],
+    ['cleaning',     'Force cleaning (interior / wash)'],
+    ['cert_expired', 'Simulate fitness cert expiry'],
   ]
 
   return (
@@ -854,7 +900,7 @@ function WhatIf({ trains, loading, onRun }) {
       <PanelHeader
         eyebrow="LIVE RE-PLANNING"
         title="What-if simulator"
-        subtitle="POST /plan/what-if sends the override to the backend. No frontend solver logic is used."
+        subtitle="POST /plan/what-if sends the override directly to the backend CP-SAT solver."
       />
       <div className="scenario-form">
         <label>
@@ -881,7 +927,7 @@ function WhatIf({ trains, loading, onRun }) {
         </button>
       </div>
 
-      {/* Signal sweep during loading */}
+      {/* Train loader during solving */}
       <AnimatePresence>
         {loading && (
           <motion.div
@@ -889,12 +935,61 @@ function WhatIf({ trains, loading, onRun }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
-            style={{ marginTop: 20 }}
+            style={{ marginTop: 24, marginBottom: 12 }}
           >
-            <SignalSweep />
+            <TrainLoader label="CP-SAT solver re-optimizing fleet constraints..." size="md" />
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Scenario Result: INFEASIBLE or Success */}
+      {scenario && !loading && (
+        <AnimatePresence mode="wait">
+          {scenario.isInfeasible ? (
+            <motion.div
+              className="infeasible-card"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="infeasible-header">
+                <SignalLight state="red" size="md" pulse={true} />
+                <strong>INFEASIBLE SCENARIO DETECTED</strong>
+              </div>
+              <p>
+                The CP-SAT solver determined that forcing <strong>{scenario.override.train_id}</strong> to <strong>{scenario.override.status.toUpperCase()}</strong> violates hard operational constraints.
+              </p>
+              <ul className="infeasible-reasons">
+                <li>Minimum 15-train peak revenue service floor cannot be met</li>
+                <li>Or maintenance/repair track capacity (M1) is completely exhausted</li>
+                <li>Safety certifications and open critical job cards prevent substitute trains from entering service</li>
+              </ul>
+              <div className="infeasible-actions">
+                <button className="primary-btn" onClick={onReset}>Return to baseline plan</button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              className="scenario-success-card"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <div className="scenario-success-header">
+                <SignalLight state="green" size="sm" />
+                <strong>Scenario Solved Successfully</strong>
+              </div>
+              <p>
+                Applied override: <strong>{scenario.override.train_id}</strong> → <strong>{scenario.override.status.toUpperCase()}</strong>.
+                {scenario.override.status === 'breakdown' && ' Unit structurally removed from service pool.'}
+              </p>
+              <button className="text-btn" onClick={onReset}>Return to baseline plan →</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
       <div className="scenario-callout">
         <strong>DEMO PATH</strong>
@@ -927,6 +1022,7 @@ function formatBreakdown(breakdown) {
 function Explain({ trains, plan, selected, setSelected, explanation, loading, onAsk }) {
   const breakdown = formatBreakdown(explanation?.quantitative_breakdown)
   const river = selected ? getTrainName(selected) : null
+  const currentAssignment = plan?.assignments?.find((a) => a.train_id === explanation?.train_id)
 
   return (
     <section className="panel explain-panel">
@@ -969,8 +1065,11 @@ function Explain({ trains, plan, selected, setSelected, explanation, loading, on
               </div>
             )}
             <div className="explanation-top">
-              <strong>{explanation.train_id}</strong>
-              <StateBadge state={explanation.assigned_state} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <strong>{explanation.train_id}</strong>
+                <StateBadge state={explanation.assigned_state} />
+                <ConstraintLight type={explanation.constraint_type || currentAssignment?.constraint_type || 'soft'} />
+              </div>
             </div>
             <p>{explanation.explanation}</p>
             <div className="tags">

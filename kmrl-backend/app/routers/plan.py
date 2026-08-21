@@ -39,6 +39,7 @@ class ShuntOut(BaseModel):
 class PlanOut(BaseModel):
     """Complete induction plan output ?" the locked contract shape."""
     plan_id: str
+    status: str
     generated_at: str  # ISO 8601 timestamp
     assignments: List[AssignmentOut]
     shunts_required: List[ShuntOut]
@@ -73,6 +74,7 @@ def _plan_to_response(plan: InductionPlan) -> PlanOut:
     (summary-only) return value."""
     return PlanOut(
         plan_id=plan.plan_id,
+        status=plan.solver_status or "FEASIBLE",
         generated_at=plan.generated_at.isoformat() if plan.generated_at else "",
         assignments=[
             AssignmentOut(
