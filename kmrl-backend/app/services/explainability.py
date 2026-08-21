@@ -1,4 +1,4 @@
-﻿"""
+"""
 Explainability service â€” translates CP-SAT solver constraint reasoning into
 plain-English explanations for the dashboard and natural language query feature.
 
@@ -26,7 +26,24 @@ import re
 
 from app.models.train import Train, JobCard, JobCardStatus, JobCardSeverity
 from app.models.plan import PlanAssignment, AssignmentState, ConstraintType
-from app.models.yard import YardBay
+import os
+import sys
+from pathlib import Path
+
+# Add LOCKWOOD to sys.path: supports LOCKWOOD_PATH env var or dynamic workspace search
+lockwood_dir = os.getenv("LOCKWOOD_PATH")
+if not lockwood_dir:
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / "LOCKWOOD"
+        if candidate.exists() and (candidate / "src").exists():
+            lockwood_dir = str(candidate)
+            break
+if not lockwood_dir:
+    lockwood_dir = str(Path(__file__).resolve().parents[3] / "LOCKWOOD")
+
+if lockwood_dir not in sys.path:
+    sys.path.insert(0, lockwood_dir)
+
 from src.adapters.db_adapter import adapt_train, adapt_yard_layout
 from src.solver.decision_breakdown import explain_decision
 from src.solver.nl_query import answer_query as lockwood_answer_query

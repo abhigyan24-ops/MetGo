@@ -15,7 +15,7 @@ Hard constraint 1 (fitness certificate) is unchanged from Part 1b.
 
 from ortools.sat.python import cp_model
 
-from src.constants import PLANNING_DATE, MAX_TRAINS_IN_CLEANING, MAX_TRAINS_IN_MAINTENANCE
+from src.constants import PLANNING_DATE, MAX_TRAINS_IN_CLEANING, MAX_TRAINS_IN_MAINTENANCE, MIN_SERVICE_TRAINS
 from src.models import Train, YardLayout
 from src.solver.states import ALL_STATES, CLEANING, MAINTENANCE, SERVICE, STANDBY
 
@@ -121,9 +121,24 @@ def build_model(trains: list[Train], yard_layout: YardLayout) -> tuple[cp_model.
     cleaning_vars = [assign_vars[(t.train_id, CLEANING)] for t in trains]
     model.Add(sum(cleaning_vars) <= MAX_TRAINS_IN_CLEANING)
 
-    # Operational requirement: maintain baseline service fleet size (min 14 trains)
-    if len(trains) >= 15:
+    # --- Hard constraint 5: minimum service-level floor ---
+    # Guarantees that the solver cannot produce a plan with fewer trains
+    # in service than MIN_SERVICE_TRAINS, derived from KMRL's published
+    # line length (27.96 km), average operating speed (35 km/h), and
+    # off-peak headway (10 min). Full calculation is in constants.py.
+    #
+    # This is a HARD constraint (not a soft penalty) — if the fleet has
+    # too many trains simultaneously blocked by critical job cards,
+    # expired fitness certs, or yard capacity limits to satisfy this floor,
+    # the solver will report INFEASIBLE, which is surfaced to the caller in
+    # tasks.py as status="INFEASIBLE". That is the correct behavior: a
+    # plan that silently violates the service floor is worse than no plan.
+    #
+    # The guard (len(trains) >= MIN_SERVICE_TRAINS) prevents the solver
+    # from being trivially infeasible in test scenarios with fewer than
+    # MIN_SERVICE_TRAINS trains seeded.
+    if len(trains) >= MIN_SERVICE_TRAINS:
         service_vars = [assign_vars[(t.train_id, SERVICE)] for t in trains]
-        model.Add(sum(service_vars) >= 14)
+        model.Add(sum(service_vars) >= MIN_SERVICE_TRAINS)
 
     return model, assign_vars

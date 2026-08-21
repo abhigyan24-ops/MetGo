@@ -22,14 +22,23 @@ from app.models.yard import YardBay
 from ortools.sat.python import cp_model
 import time
 
+import os
 import sys
 from pathlib import Path
 
-# LOCKWOOD sits as a sibling folder to this repo (Desktop\LOCKWOOD next to
-# Desktop\kmrl-backend). Without this, every "from src..." import below
-# fails with ModuleNotFoundError, since nothing else on this machine adds
-# LOCKWOOD to the Python path.
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "LOCKWOOD"))
+# Add LOCKWOOD to sys.path: supports LOCKWOOD_PATH env var or dynamic workspace search
+lockwood_dir = os.getenv("LOCKWOOD_PATH")
+if not lockwood_dir:
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / "LOCKWOOD"
+        if candidate.exists() and (candidate / "src").exists():
+            lockwood_dir = str(candidate)
+            break
+if not lockwood_dir:
+    lockwood_dir = str(Path(__file__).resolve().parents[3] / "LOCKWOOD")
+
+if lockwood_dir not in sys.path:
+    sys.path.insert(0, lockwood_dir)
 
 from src.constants import PLANNING_DATE
 from src.solver.model_builder import build_model
