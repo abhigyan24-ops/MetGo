@@ -17,8 +17,16 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
-    celery_broker_url: str = "redis://localhost:6379/0"
-    celery_result_backend: str = "redis://localhost:6379/1"
+    celery_broker_url: str = ""
+    celery_result_backend: str = ""
+
+    def __init__(self, **values):
+        super().__init__(**values)
+        if not self.celery_broker_url:
+            self.celery_broker_url = self.redis_url
+        if not self.celery_result_backend:
+            # Upstash free tier only supports database index /0; fallback to redis_url directly
+            self.celery_result_backend = self.redis_url
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"
