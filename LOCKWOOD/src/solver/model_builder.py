@@ -17,10 +17,10 @@ from ortools.sat.python import cp_model
 
 from src.constants import PLANNING_DATE, MAX_TRAINS_IN_CLEANING, MAX_TRAINS_IN_MAINTENANCE, MIN_SERVICE_TRAINS
 from src.models import Train, YardLayout
-from src.solver.states import ALL_STATES, CLEANING, MAINTENANCE, SERVICE, STANDBY
+from src.solver.states import ALL_STATES, CLEANING, MAINTENANCE, SERVICE, STANDBY, BREAKDOWN
 
 
-def build_model(trains: list[Train], yard_layout: YardLayout) -> tuple[cp_model.CpModel, dict]:
+def build_model(trains: list[Train], yard_layout: YardLayout, overrides: list = None) -> tuple[cp_model.CpModel, dict]:
     """
     Builds a CP-SAT model for the given list of trains and multi-line
     yard layout, including decision variables and all three hard
@@ -140,5 +140,15 @@ def build_model(trains: list[Train], yard_layout: YardLayout) -> tuple[cp_model.
     if len(trains) >= MIN_SERVICE_TRAINS:
         service_vars = [assign_vars[(t.train_id, SERVICE)] for t in trains]
         model.Add(sum(service_vars) >= MIN_SERVICE_TRAINS)
+
+    # --- Hard constraint 6: BREAKDOWN only via override ---
+    # Prevents the solver from choosing BREAKDOWN as an escape hatch when
+    # other constraints are tight. If a train doesn't have an explicit
+    # breakdown override, its BREAKDOWN variable is structurally forced to 0.
+    overrides = overrides or []
+    breakdown_overrides = {o.train_id for o in overrides if o.override_type == "breakdown"}
+    for train in trains:
+        if train.train_id not in breakdown_overrides:
+            model.Add(assign_vars[(train.train_id, BREAKDOWN)] == 0)
 
     return model, assign_vars

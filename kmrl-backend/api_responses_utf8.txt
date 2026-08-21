@@ -1,0 +1,176 @@
+=== BASELINE PLAN GENERATION ===
+{
+  "plan_id": "plan_2026_08_21_012100",
+  "generated_at": "2026-08-21T01:21:00.633178+00:00",
+  "assignments": [
+    {
+      "train_id": "T01",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T02",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T03",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T04",
+      "state": "standby",
+      "reason": "Open critical job card",
+      "constraint_type": "hard"
+    },
+    {
+      "train_id": "T05",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T06",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T07",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T08",
+      "state": "cleaning",
+      "reason": "Assigned for cleaning",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T09",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T10",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T11",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T12",
+      "state": "standby",
+      "reason": "Open critical job card",
+      "constraint_type": "hard"
+    },
+    {
+      "train_id": "T13",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T14",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T15",
+      "state": "standby",
+      "reason": "Kept in standby",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T16",
+      "state": "maintenance",
+      "reason": "Routed to maintenance",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T17",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T18",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T19",
+      "state": "standby",
+      "reason": "Kept in standby",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T20",
+      "state": "standby",
+      "reason": "Kept in standby",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T21",
+      "state": "cleaning",
+      "reason": "Assigned for cleaning",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T22",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T23",
+      "state": "maintenance",
+      "reason": "Routed to maintenance",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T24",
+      "state": "maintenance",
+      "reason": "Routed to maintenance",
+      "constraint_type": "soft"
+    },
+    {
+      "train_id": "T25",
+      "state": "service",
+      "reason": "Selected for service; no blocking constraints",
+      "constraint_type": "soft"
+    }
+  ],
+  "shunts_required": []
+}
+
+=== WHAT-IF T09 BREAKDOWN ===
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": [
+        "body",
+        "override"
+      ],
+      "msg": "Field required",
+      "input": {
+        "train_id": "T09",
+        "status": "breakdown"
+      }
+    }
+  ]
+}

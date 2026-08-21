@@ -87,8 +87,6 @@ def call_solver(
     lockwood_trains = [adapt_train(t) for t in trains]
     yard_layout = adapt_yard_layout(yard_bays)
 
-    model, assign_vars = build_model(lockwood_trains, yard_layout)
-
     # Part 5b: real override mechanism (Part 5a), replacing the Part 3c
     # ad-hoc hack. call_solver()'s own signature is unchanged (still a
     # single optional override dict) -- internally translated into the
@@ -98,6 +96,9 @@ def call_solver(
     if override and override.get("train_id"):
         override_forced_id = override["train_id"]
         overrides = [Override(override["train_id"], override["status"])]
+
+    model, assign_vars = build_model(lockwood_trains, yard_layout, overrides=overrides)
+
     override_reasons = apply_overrides(model, assign_vars, overrides)
 
     objective = build_total_objective(lockwood_trains, assign_vars, yard_layout)
