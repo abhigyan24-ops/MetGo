@@ -387,8 +387,6 @@ function App() {
           </div>
         </header>
 
-        <KmrlSpecsRibbon />
-
         {/* PA-style banners */}
         <PAToast type="error" show={!!error} action={{ label: 'Retry', onClick: loadDashboard }}>
           <strong style={{ color: 'var(--color-signal-red)' }}>Connection issue</strong>
@@ -496,19 +494,6 @@ function Metric({ label, value, tone }) {
     <div className={`home-metric ${tone || ''}`}>
       <strong>{displayed}</strong>
       <span>{label}</span>
-    </div>
-  )
-}
-
-// ── KMRL Specs Ribbon ─────────────────────────────────────────
-function KmrlSpecsRibbon() {
-  return (
-    <div className="kmrl-specs-bar">
-      <span className="kmrl-specs-title">KMRL Specs:</span>
-      <span className="kmrl-spec-chip">🚆 <strong>{KMRL_SPECS.rollingStock}</strong></span>
-      <span className="kmrl-spec-chip">⚡ <strong>{KMRL_SPECS.traction}</strong></span>
-      <span className="kmrl-spec-chip">📡 <strong>{KMRL_SPECS.signaling}</strong></span>
-      <span className="kmrl-spec-chip solar">☀️ <strong>{KMRL_SPECS.solarCapacityMwp} MWp Solar</strong> ({KMRL_SPECS.cleanEnergyRatio} Clean Traction)</span>
     </div>
   )
 }
