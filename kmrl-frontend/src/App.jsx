@@ -190,15 +190,15 @@ function App() {
     setScenario(null)
     setExplanation(null)
     
-    // Polling logic for backend health
+    // Polling logic for backend health (handles Render free tier cold starts)
     let backendReady = false;
     let attempts = 0;
-    const maxTime = 15000;
+    const maxTime = 60000;
     const startTime = Date.now();
     
     while (!backendReady && Date.now() - startTime < maxTime) {
       try {
-        setBootStatus('Connecting to control center...')
+        setBootStatus(attempts > 2 ? 'Waking up operations backend (may take up to 45s on first load)...' : 'Connecting to control center...')
         const health = await api.health();
         if (health?.status === 'ok') {
           backendReady = true;
@@ -206,8 +206,8 @@ function App() {
         }
       } catch (e) {
         attempts++;
-        setBootStatus(`Connection retry ${attempts}...`)
-        await new Promise(r => setTimeout(r, Math.min(800 * Math.pow(1.5, attempts), 3000)));
+        setBootStatus(attempts > 2 ? `Waking up backend service (attempt ${attempts})...` : `Connection retry ${attempts}...`)
+        await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(1.3, attempts), 3000)));
       }
     }
 
