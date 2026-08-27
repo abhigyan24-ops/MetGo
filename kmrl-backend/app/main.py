@@ -119,13 +119,25 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS — allow the Track C React dashboard on any local port during development
+ALLOWED_ORIGINS = [
+    "https://metgo.s-24-gyani.workers.dev",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+]
+
+# CORS middleware allowing Cloudflare production dashboard and local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # tighten to specific origin in production
-    allow_credentials=False,      # Fix: cannot use True with wildcard "*" origin
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.workers\.dev|https://.*\.pages\.dev|http://localhost:\d+|http://127\.0\.0\.1:\d+",
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=86400,
 )
 
 # ---------------------------------------------------------------------------
