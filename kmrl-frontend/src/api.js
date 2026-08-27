@@ -1,5 +1,8 @@
+import { BUILD_TIMESTAMP, BACKEND_TARGET } from './version'
+
 const rawUrl = import.meta.env.VITE_API_BASE_URL || ''
-const API_BASE = (rawUrl && !rawUrl.includes('railway') ? rawUrl : 'https://metgo-backend.onrender.com').replace(/\/$/, '')
+const API_BASE = (rawUrl && !rawUrl.includes('railway') ? rawUrl : BACKEND_TARGET).replace(/\/$/, '')
+console.log(`[MetGo] Build: ${BUILD_TIMESTAMP} | Backend: ${API_BASE}`)
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
