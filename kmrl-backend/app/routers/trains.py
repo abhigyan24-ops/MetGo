@@ -13,6 +13,7 @@ from app.schemas.train import TrainOut, TrainDetail
 router = APIRouter()
 
 
+@router.get("", response_model=List[TrainOut], include_in_schema=False)
 @router.get("/", response_model=List[TrainOut], summary="List all trains")
 def list_trains(db: Session = Depends(get_db)):
     """Return summary of all 25 trains in the KMRL fleet."""

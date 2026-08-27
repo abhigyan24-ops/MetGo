@@ -14,6 +14,7 @@ from app.schemas.station import StationOut
 router = APIRouter()
 
 
+@router.get("", response_model=List[StationOut], include_in_schema=False)
 @router.get("/", response_model=List[StationOut], summary="List all 25 KMRL stations")
 def list_stations(db: Session = Depends(get_db)):
     """
