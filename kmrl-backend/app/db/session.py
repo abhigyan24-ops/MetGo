@@ -13,13 +13,20 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,       # recycle stale connections
-    pool_size=10,
-    max_overflow=20,
-    echo=(settings.app_env == "development"),
-)
+if settings.database_url.startswith("sqlite"):
+    engine = create_engine(
+        settings.database_url,
+        connect_args={"check_same_thread": False},
+        echo=(settings.app_env == "development"),
+    )
+else:
+    engine = create_engine(
+        settings.database_url,
+        pool_pre_ping=True,       # recycle stale connections
+        pool_size=10,
+        max_overflow=20,
+        echo=(settings.app_env == "development"),
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,

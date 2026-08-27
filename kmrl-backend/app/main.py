@@ -40,20 +40,51 @@ async def lifespan(app: FastAPI):
     """Run startup checks, then yield to serve requests, then clean up."""
     logger.info("=== MetGo backend starting ===")
 
-    # 1. Postgres connectivity
+    # 0. Create all DB tables
+    try:
+        from app.db.session import Base
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        logger.warning("Table creation skipped/failed: %s", exc)
+
+    # 1. DB connectivity
     try:
         check_db_connection()
     except Exception as exc:
-        logger.warning("Postgres not ready at startup: %s", exc)
+        logger.warning("Database check warning at startup: %s", exc)
 
-    # 2. Create TimescaleDB hypertables (idempotent)
+    # 2. Auto-seed if empty
     try:
-        with engine.connect() as conn:
-            create_timescale_hypertables(conn)
+        from app.db.session import SessionLocal
+        from app.models.train import Train
+        with SessionLocal() as db:
+            if db.query(Train).count() == 0:
+                logger.info("Database is empty. Running automatic seed...")
+                from app.seed.seed_fleet import seed_yard_layout, generate_trains_with_data
+                from app.seed.seed_stations import parse_gtfs_stops, match_and_sequence_stations, seed_stations
+                from pathlib import Path
+                
+                bays = seed_yard_layout(db)
+                generate_trains_with_data(db, bays)
+                
+                stops_path = Path(__file__).parent.parent / "stops.txt"
+                if stops_path.exists():
+                    gtfs_stops = parse_gtfs_stops(stops_path)
+                    stations_data = match_and_sequence_stations(gtfs_stops)
+                    seed_stations(db, stations_data)
+                logger.info("Automatic seed completed successfully.")
     except Exception as exc:
-        logger.warning("Hypertable setup skipped: %s", exc)
+        logger.warning("Auto-seeding skipped: %s", exc)
 
-    # 3. Neo4j connectivity
+    # 3. Create TimescaleDB hypertables (idempotent, only on Postgres)
+    if not settings.database_url.startswith("sqlite"):
+        try:
+            with engine.connect() as conn:
+                create_timescale_hypertables(conn)
+        except Exception as exc:
+            logger.warning("Hypertable setup skipped: %s", exc)
+
+    # 4. Neo4j connectivity
     try:
         get_neo4j().verify_connectivity()
     except Exception as exc:

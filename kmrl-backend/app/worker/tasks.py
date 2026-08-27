@@ -165,6 +165,13 @@ def call_solver(
     }
 
 
+def _safe_update_state(task, state: str, meta: dict = None):
+    if getattr(task, "request", None) and getattr(task.request, "id", None):
+        try:
+            task.update_state(state=state, meta=meta)
+        except Exception:
+            pass
+
 # ---------------------------------------------------------------------------
 # Task: Generate full plan (nightly scheduled run)
 # ---------------------------------------------------------------------------
@@ -192,7 +199,7 @@ def generate_plan_async(self, plan_date_str: str) -> Dict[str, Any]:
     logger.info(f"Starting plan generation for {plan_date_str}")
     
     # Update task state to STARTED
-    self.update_state(state="STARTED", meta={"progress": "Loading fleet data..."})
+    _safe_update_state(self, state="STARTED", meta={"progress": "Loading fleet data..."})
     
     db = SessionLocal()
     try:
@@ -206,29 +213,31 @@ def generate_plan_async(self, plan_date_str: str) -> Dict[str, Any]:
         run_suffix = datetime.utcnow().strftime("%H%M%S")
         plan_id = f"plan_{plan_date_str.replace('-', '_')}_{run_suffix}"
         
+        task_id = self.request.id if getattr(self, "request", None) else None
+        
         # Create plan record
         plan = InductionPlan(
             plan_id=plan_id,
             plan_date=plan_date,
             generated_at=datetime.utcnow(),
             status=PlanStatus.GENERATING,
-            celery_task_id=self.request.id,
+            celery_task_id=task_id,
             is_what_if=False,
         )
         db.add(plan)
         db.commit()
         
         # Load all trains with constraint data
-        self.update_state(state="STARTED", meta={"progress": "Loading train constraint data..."})
+        _safe_update_state(self, state="STARTED", meta={"progress": "Loading train constraint data..."})
         trains = db.query(Train).all()
         yard_bays = db.query(YardBay).all()
 
         # Call solver
-        self.update_state(state="STARTED", meta={"progress": "Running CP-SAT solver..."})
+        _safe_update_state(self, state="STARTED", meta={"progress": "Running CP-SAT solver..."})
         solver_result = call_solver(trains, yard_bays, override=None)
         
         # Store results
-        self.update_state(state="STARTED", meta={"progress": "Storing plan assignments..."})
+        _safe_update_state(self, state="STARTED", meta={"progress": "Storing plan assignments..."})
         
         plan.solver_status = solver_result["status"]
         plan.solver_duration_ms = solver_result["solve_time_ms"]
@@ -307,35 +316,36 @@ def generate_what_if_plan(
     
     logger.info(f"Starting what-if plan: override={override}")
     
-    self.update_state(state="STARTED", meta={"progress": "Loading base plan..."})
+    _safe_update_state(self, state="STARTED", meta={"progress": "Loading base plan..."})
     
     db = SessionLocal()
     try:
         # Create what-if plan record
         whatif_id = f"whatif_{override['train_id']}_{override['status']}_{int(datetime.utcnow().timestamp())}"
+        task_id = self.request.id if getattr(self, "request", None) else None
         
         plan = InductionPlan(
             plan_id=whatif_id,
             plan_date=date.today(),
             generated_at=datetime.utcnow(),
             status=PlanStatus.GENERATING,
-            celery_task_id=self.request.id,
+            celery_task_id=task_id,
             is_what_if=True,
         )
         db.add(plan)
         db.commit()
         
         # Load fleet data
-        self.update_state(state="STARTED", meta={"progress": "Loading fleet data..."})
+        _safe_update_state(self, state="STARTED", meta={"progress": "Loading fleet data..."})
         trains = db.query(Train).all()
         yard_bays = db.query(YardBay).all()
 
         # Call solver with override
-        self.update_state(state="STARTED", meta={"progress": "Running CP-SAT solver with override..."})
+        _safe_update_state(self, state="STARTED", meta={"progress": "Running CP-SAT solver with override..."})
         solver_result = call_solver(trains, yard_bays, override=override)
         
         # Store results
-        self.update_state(state="STARTED", meta={"progress": "Storing what-if plan..."})
+        _safe_update_state(self, state="STARTED", meta={"progress": "Storing what-if plan..."})
         
         plan.solver_status = solver_result["status"]
         plan.solver_duration_ms = solver_result["solve_time_ms"]

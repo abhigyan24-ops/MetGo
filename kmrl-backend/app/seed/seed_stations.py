@@ -118,7 +118,7 @@ def match_and_sequence_stations(gtfs_stops: List[Dict]) -> List[Dict]:
             if matches:
                 stop = matches[0]
             else:
-                print(f"⚠️  WARNING: Could not match '{canonical_name}' in GTFS data — using placeholder")
+                print(f"[WARN] Could not match '{canonical_name}' in GTFS data -- using placeholder")
                 stop = {
                     "stop_id": f"PLACEHOLDER_{seq}",
                     "stop_name": canonical_name,
@@ -147,7 +147,7 @@ def seed_stations(db: Session, stations_data: List[Dict]) -> None:
     # Clear existing stations to allow re-seeding
     existing_count = db.query(Station).count()
     if existing_count > 0:
-        print(f"🗑️  Clearing {existing_count} existing stations...")
+        print(f"[INFO] Clearing {existing_count} existing stations...")
         db.query(Station).delete()
         db.commit()
     
@@ -157,13 +157,13 @@ def seed_stations(db: Session, stations_data: List[Dict]) -> None:
         db.add(station)
     
     db.commit()
-    print(f"✅ Loaded {len(stations_data)} stations into database")
+    print(f"[OK] Loaded {len(stations_data)} stations into database")
     
     # Verify
     loaded = db.query(Station).order_by(Station.sequence).all()
-    print("\n📍 Loaded stations:")
+    print("\nLoaded stations:")
     for s in loaded:
-        interchange_marker = " 🔄" if s.is_interchange else ""
+        interchange_marker = " [INTERCHANGE]" if s.is_interchange else ""
         print(f"  {s.sequence:2d}. {s.stop_name:25s} ({s.stop_id}){interchange_marker}")
 
 
@@ -172,18 +172,21 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Seed KMRL stations from GTFS stops.txt — contains data provided by Kochi Metro Rail Limited"
+        description="Seed KMRL stations from GTFS stops.txt -- contains data provided by Kochi Metro Rail Limited"
     )
+    default_gtfs = Path(__file__).parent.parent.parent / "stops.txt"
+    if not default_gtfs.exists():
+        default_gtfs = Path("./stops.txt")
     parser.add_argument(
         "--gtfs-path",
         type=Path,
-        default=Path("./gtfs_data/stops.txt"),
+        default=default_gtfs,
         help="Path to GTFS stops.txt file",
     )
     args = parser.parse_args()
     
     if not args.gtfs_path.exists():
-        print(f"❌ ERROR: GTFS file not found: {args.gtfs_path}")
+        print(f"[ERROR] GTFS file not found: {args.gtfs_path}")
         print("\nTo obtain KMRL GTFS data:")
         print("  1. Visit https://kochimetro.org/open-data/")
         print("  2. Download the GTFS zip")
@@ -201,12 +204,12 @@ def main():
     print()
     
     # Parse GTFS
-    print(f"📖 Reading GTFS data from {args.gtfs_path}...")
+    print(f"Reading GTFS data from {args.gtfs_path}...")
     gtfs_stops = parse_gtfs_stops(args.gtfs_path)
     print(f"   Found {len(gtfs_stops)} stops in GTFS file")
     
     # Match and sequence
-    print(f"🔗 Matching to Blue Line canonical sequence (25 stations)...")
+    print(f"Matching to Blue Line canonical sequence (25 stations)...")
     stations_data = match_and_sequence_stations(gtfs_stops)
     
     # Load into DB
@@ -216,7 +219,7 @@ def main():
     finally:
         db.close()
     
-    print("\n✅ Station seeding complete!")
+    print("\n[OK] Station seeding complete!")
     print("   Next step: python -m app.seed.seed_fleet")
 
 

@@ -31,8 +31,14 @@ celery_app = Celery(
     include=["app.worker.tasks"],  # Auto-discover tasks in tasks.py
 )
 
+import os
+
+always_eager = os.getenv("CELERY_ALWAYS_EAGER", "true").lower() in ("true", "1", "yes")
+
 # Celery configuration
 celery_app.conf.update(
+    task_always_eager=always_eager,
+    task_eager_propagates=True,
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",

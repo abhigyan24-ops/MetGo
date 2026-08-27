@@ -26,7 +26,7 @@ class Neo4jSession:
         """Return a new Neo4j session for use in a `with` block."""
         return self._driver.session()
 
-    @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
+    @retry(stop=stop_after_attempt(1), wait=wait_fixed(1))
     def verify_connectivity(self) -> None:
         self._driver.verify_connectivity()
         logger.info("Neo4j connection OK")

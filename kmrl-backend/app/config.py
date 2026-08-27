@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # PostgreSQL / TimescaleDB
     database_url: str = "postgresql://kmrl:kmrl_secret@localhost:5432/kmrl_db"
 
-    # Redis
+    # Redis (Self-hosted / Local)
     redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str = ""
     celery_result_backend: str = ""
@@ -25,8 +25,7 @@ class Settings(BaseSettings):
         if not self.celery_broker_url:
             self.celery_broker_url = self.redis_url
         if not self.celery_result_backend:
-            # Upstash free tier only supports database index /0; fallback to redis_url directly
-            self.celery_result_backend = self.redis_url
+            self.celery_result_backend = "redis://localhost:6379/1"
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"

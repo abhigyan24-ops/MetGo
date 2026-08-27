@@ -15,11 +15,11 @@ COPY kmrl-backend ./kmrl-backend
 COPY LOCKWOOD ./LOCKWOOD
 
 # Set Python path to support sys.path and lockwood resolving
-ENV PYTHONPATH=/app/LOCKWOOD
+ENV PYTHONPATH=/app/LOCKWOOD:/app/kmrl-backend
 
 WORKDIR /app/kmrl-backend
 
 EXPOSE 8000
 
-# Default command for the Web API service
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command for the Web API service (supports dynamic $PORT on Railway)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
