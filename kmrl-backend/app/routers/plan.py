@@ -17,8 +17,11 @@ from pydantic import BaseModel, Field
 from app.db.session import get_db
 
 from celery.exceptions import TimeoutError as CeleryTimeoutError
-from app.worker.tasks import generate_plan_async, generate_what_if_plan
-from app.models.plan import InductionPlan, PlanAssignment, ShuntMove, PlanStatus
+from app.config import get_settings
+from app.worker.tasks import generate_plan_async, generate_what_if_plan, call_solver
+from app.models.plan import InductionPlan, PlanAssignment, ShuntMove, PlanStatus, AssignmentState, ConstraintType
+from app.models.train import Train
+from app.models.yard import YardBay
 from app.services.explainability import get_explainability_engine
 from src.solver.overrides import VALID_OVERRIDE_TYPES
 
@@ -92,6 +95,7 @@ def _plan_to_response(plan: InductionPlan) -> PlanOut:
     )
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # POST /plan/generate ?" main planning endpoint
 # ---------------------------------------------------------------------------
 
@@ -100,13 +104,66 @@ def generate_plan(db: Session = Depends(get_db)):
     """
     Generate a complete induction plan for the next service day.
 
-    Dispatches the real Celery task (app.worker.tasks.generate_plan_async)
-    and blocks for the result -- the frontend awaits this endpoint
-    directly and does not poll GET /tasks/{task_id} (confirmed by
-    reading kmrl-frontend/src/App.jsx directly).
+    Supports both:
+    1. Synchronous in-process execution (DEPLOYMENT_MODE=render/sync)
+    2. Distributed Celery task queue (DEPLOYMENT_MODE=docker/celery)
     """
     plan_date_str = date.today().isoformat()
+    settings = get_settings()
 
+    # Synchronous alternate path for Render / card-free / standalone deployment
+    if settings.deployment_mode.lower() in ("render", "sync", "standalone"):
+        trains = db.query(Train).all()
+        yard_bays = db.query(YardBay).all()
+        run_suffix = datetime.utcnow().strftime("%H%M%S")
+        plan_id = f"plan_{plan_date_str.replace('-', '_')}_{run_suffix}"
+
+        plan = InductionPlan(
+            plan_id=plan_id,
+            plan_date=date.today(),
+            generated_at=datetime.utcnow(),
+            status=PlanStatus.GENERATING,
+            celery_task_id="sync-task",
+            is_what_if=False,
+        )
+        db.add(plan)
+        db.commit()
+
+        solver_result = call_solver(trains, yard_bays, override=None)
+        plan.solver_status = solver_result["status"]
+        plan.solver_duration_ms = solver_result["solve_time_ms"]
+
+        if plan.solver_status not in ("OPTIMAL", "FEASIBLE"):
+            plan.status = PlanStatus.FAILED
+            db.commit()
+            raise HTTPException(status_code=409, detail=f"Solver could not find a valid plan (status: {plan.solver_status}).")
+
+        for assignment_data in solver_result["assignments"]:
+            assignment = PlanAssignment(
+                plan_id=plan_id,
+                train_id=assignment_data["train_id"],
+                state=AssignmentState(assignment_data["state"]),
+                reason=assignment_data["reason"],
+                constraint_type=ConstraintType(assignment_data["constraint_type"]),
+                constraints_considered="fitness_cert,job_cards,cleaning_schedule,branding_contract,yard_position",
+            )
+            db.add(assignment)
+
+        for shunt_data in solver_result["shunts"]:
+            shunt = ShuntMove(
+                plan_id=plan_id,
+                train_id=shunt_data["train_id"],
+                from_bay=shunt_data["from_bay"],
+                to_bay=shunt_data["to_bay"],
+                sequence=shunt_data["sequence"],
+            )
+            db.add(shunt)
+
+        plan.status = PlanStatus.COMPLETE
+        db.commit()
+        return _plan_to_response(plan)
+
+    # Celery / Redis distributed queue path
     try:
         result = generate_plan_async.delay(plan_date_str).get(timeout=CELERY_TASK_TIMEOUT_SECONDS)
     except CeleryTimeoutError:
@@ -136,14 +193,6 @@ def generate_plan(db: Session = Depends(get_db)):
 def what_if(request: WhatIfRequest, db: Session = Depends(get_db)):
     """
     Re-run the solver with a manual override (e.g. simulate a breakdown).
-
-    Same blocking-Celery-call pattern as /generate -- see that
-    endpoint's docstring. base_plan_id is resolved here to the most
-    recent COMPLETE, non-what-if plan for record-keeping and to
-    validate a baseline exists; generate_what_if_plan() itself does
-    not read anything from that plan (confirmed by reading
-    app/worker/tasks.py directly -- it always re-fetches fresh fleet
-    data regardless of base_plan_id).
     """
     override = request.override
     train_id = override.get("train_id")
@@ -166,6 +215,63 @@ def what_if(request: WhatIfRequest, db: Session = Depends(get_db)):
     if base_plan is None:
         raise HTTPException(status_code=404, detail="No completed plan exists yet -- generate a plan first.")
 
+    settings = get_settings()
+
+    # Synchronous alternate path for Render / card-free deployment
+    if settings.deployment_mode.lower() in ("render", "sync", "standalone"):
+        trains = db.query(Train).all()
+        yard_bays = db.query(YardBay).all()
+        whatif_id = f"whatif_{override['train_id']}_{override['status']}_{int(datetime.utcnow().timestamp())}"
+
+        plan = InductionPlan(
+            plan_id=whatif_id,
+            plan_date=date.today(),
+            generated_at=datetime.utcnow(),
+            status=PlanStatus.GENERATING,
+            celery_task_id="sync-task",
+            is_what_if=True,
+        )
+        db.add(plan)
+        db.commit()
+
+        solver_result = call_solver(trains, yard_bays, override=override)
+        plan.solver_status = solver_result["status"]
+        plan.solver_duration_ms = solver_result["solve_time_ms"]
+
+        if plan.solver_status not in ("OPTIMAL", "FEASIBLE"):
+            plan.status = PlanStatus.FAILED
+            db.commit()
+            raise HTTPException(
+                status_code=409,
+                detail=f"This override combination has no valid plan (solver status: {plan.solver_status}).",
+            )
+
+        for assignment_data in solver_result["assignments"]:
+            assignment = PlanAssignment(
+                plan_id=whatif_id,
+                train_id=assignment_data["train_id"],
+                state=AssignmentState(assignment_data["state"]),
+                reason=assignment_data["reason"],
+                constraint_type=ConstraintType(assignment_data["constraint_type"]),
+                constraints_considered="fitness_cert,job_cards,cleaning_schedule,branding_contract,yard_position",
+            )
+            db.add(assignment)
+
+        for shunt_data in solver_result["shunts"]:
+            shunt = ShuntMove(
+                plan_id=whatif_id,
+                train_id=shunt_data["train_id"],
+                from_bay=shunt_data["from_bay"],
+                to_bay=shunt_data["to_bay"],
+                sequence=shunt_data["sequence"],
+            )
+            db.add(shunt)
+
+        plan.status = PlanStatus.COMPLETE
+        db.commit()
+        return _plan_to_response(plan)
+
+    # Celery / Redis distributed queue path
     try:
         result = generate_what_if_plan.delay(base_plan.plan_id, override).get(timeout=CELERY_TASK_TIMEOUT_SECONDS)
     except CeleryTimeoutError:

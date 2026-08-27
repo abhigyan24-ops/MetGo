@@ -10,6 +10,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # App
     app_env: str = "development"
+    deployment_mode: str = "docker"  # 'docker' for Celery/Redis queue, 'render' / 'sync' for synchronous in-process
     secret_key: str = "change_me_in_production"
 
     # PostgreSQL / TimescaleDB
